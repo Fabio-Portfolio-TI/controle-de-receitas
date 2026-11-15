@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-tema="claro">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Controle de Receitas</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+  <!-- ===== TOPO ===== -->
+  <header class="topo">
+    <div class="topo-linha">
+      <h1>Controle de Receitas</h1>
+      <div class="topo-acoes">
+        <span class="usuario" id="usuarioAtual"></span>
+        <button class="btn" type="button" id="btnSair">Sair / Trocar usuário</button>
+        <button class="btn" type="button" id="btnTema">Modo escuro</button>
+        <button class="btn destaque" type="button" id="btnNovaReceita">+ Nova receita</button>
+      </div>
+    </div>
+
+    <div class="topo-arquivos">
+      <button class="btn" type="button" id="btnEscolher" hidden>Escolher arquivo de dados</button>
+      <button class="btn" type="button" id="btnAbrir" hidden>Abrir arquivo existente</button>
+      <button class="btn" type="button" id="btnReconectar" hidden>Reconectar ao arquivo</button>
+      <button class="btn" type="button" id="btnExportar">Salvar backup</button>
+      <label class="btn" for="inputImportar">Importar backup</label>
+      <input type="file" id="inputImportar" accept=".json,application/json" hidden>
+    </div>
+
+    <p class="status-arquivo" id="statusArquivo"></p>
+  </header>
+
+  <main class="conteudo">
+
+    <!-- ===== RESUMO ===== -->
+    <section class="resumo">
+      <div class="card"><strong id="kTotal">0</strong><small>Registros</small></div>
+      <div class="card azul"><strong id="kRetidas">0</strong><small>Receitas retidas</small></div>
+      <div class="card verde"><strong id="kEntregue">0</strong><small>Receitas entregues</small></div>
+      <div class="card amarelo"><strong id="kAguardando">0</strong><small>Aguardando entrega</small></div>
+    </section>
+
+    <!-- ===== ABAS ===== -->
+    <nav class="abas">
+      <button class="aba ativa" type="button" data-aba="receitas">Receitas <span class="contador"
+          id="nReceitas">0</span></button>
+      <button class="aba" type="button" data-aba="medicamentos">Medicamentos <span class="contador"
+          id="nMeds">0</span></button>
+      <button class="aba" type="button" data-aba="excluidos">Excluídos <span class="contador"
+          id="nExcluidos">0</span></button>
+    </nav>
+
+    <!-- ===== ABA RECEITAS ===== -->
+    <section id="aba-receitas">
+      <div class="barra-filtros">
+        <input type="search" id="busca" placeholder="Buscar paciente, cadastro, medicamento ou usuário...">
+        <select id="filtro">
+          <option value="todos">Todos os status</option>
+          <option value="aguardando">Aguardando entrega</option>
+          <option value="entregue">Entregues</option>
+        </select>
+      </div>
+
+      <div class="tabela-box">
+        <table>
+          <thead>
+            <tr>
+              <th><button type="button" class="ordenar" data-ordenar="paciente">Paciente</button></th>
+              <th><button type="button" class="ordenar" data-ordenar="dataRetida">Retida em</button></th>
+              <th><button type="button" class="ordenar" data-ordenar="retidaPor">Retida por</button></th>
+              <th><button type="button" class="ordenar" data-ordenar="status">Status</button></th>
+              <th><button type="button" class="ordenar" data-ordenar="medicamentos">Medicamentos</button></th>
+              <th><button type="button" class="ordenar" data-ordenar="dataEntrega">Entregue em</button></th>
+            </tr>
+          </thead>
+          <tbody id="listaReceitas"></tbody>
+        </table>
+        <div id="vazioReceitas" class="vazio">Nenhuma receita encontrada.</div>
+      </div>
+    </section>
+
+    <!-- ===== ABA MEDICAMENTOS ===== -->
+    <section id="aba-medicamentos" hidden>
+      <div class="barra-filtros">
+        <input type="search" id="buscaMed" placeholder="Buscar medicamento...">
+        <button class="btn destaque" type="button" id="btnNovoMed">+ Novo medicamento</button>
+      </div>
+
+      <div class="tabela-box">
+        <table>
+          <thead>
+            <tr>
+              <th>Medicamento</th>
+              <th>Dosagem</th>
+              <th>Manhã</th>
+              <th>Noite</th>
+              <th>Total/dia</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="listaMeds"></tbody>
+        </table>
+        <div id="vazioMeds" class="vazio">Nenhum medicamento cadastrado.</div>
+      </div>
+    </section>
+
+    <!-- ===== ABA EXCLUÍDOS (SOMENTE CONSULTA) ===== -->
+    <section id="aba-excluidos" hidden>
+      <p class="aviso-aba">Somente consulta. Nada nesta lista pode ser alterado ou excluído.</p>
+      <div class="tabela-box">
+        <table>
+          <thead>
+            <tr>
+              <th>Paciente</th>
+              <th>Retida em</th>
+              <th>Retirada em</th>
+              <th>Excluída por</th>
+              <th>Excluída em</th>
+            </tr>
+          </thead>
+          <tbody id="listaExcluidos"></tbody>
+        </table>
+        <div id="vazioExcluidos" class="vazio">Nenhuma receita excluída.</div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="rodape">
+    Desenvolvido por <strong>Fábio Melo</strong>
+  </footer>
+
+  <!-- ===== JANELA DE LOGIN (aparece sempre) ===== -->
+  <dialog id="dlgLogin" class="janela">
+    <form id="formLogin" novalidate>
+      <h2>Entrar no sistema</h2>
+
+      <label for="lUsuario">Nome do usuário</label>
+      <select id="lUsuario"></select>
+
+      <label for="lSenha">Senha (4 números)</label>
+      <input type="password" id="lSenha" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••">
+
+      <p class="erro-login" id="erroLogin" hidden></p>
+
+      <div class="janela-botoes">
+        <button class="btn destaque" type="submit">Entrar</button>
+        <button class="btn" type="button" id="btnNovoUsuario">Cadastrar novo usuário</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===== JANELA: CADASTRAR NOVO USUÁRIO ===== -->
+  <dialog id="dlgNovoUsuario" class="janela">
+    <form id="formNovoUsuario" novalidate>
+      <h2>Novo usuário</h2>
+
+      <label for="nuNome">Nome *</label>
+      <input id="nuNome" autocomplete="off" placeholder="Seu nome">
+
+      <label for="nuSenha">Crie uma senha de 4 números *</label>
+      <input type="password" id="nuSenha" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••">
+
+      <label for="nuSenha2">Repita a senha *</label>
+      <input type="password" id="nuSenha2" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••">
+
+      <div class="janela-botoes">
+        <button class="btn destaque" type="submit">Cadastrar</button>
+        <button class="btn" type="button" id="btnCancelarNovoUsuario">Voltar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===== JANELA: EDITAR O PRÓPRIO USUÁRIO ===== -->
+  <dialog id="dlgPessoa" class="janela">
+    <form id="formPessoa" novalidate>
+      <h2 id="tituloPessoa">Meus dados</h2>
+
+      <label for="pNome">Nome *</label>
+      <input id="pNome" autocomplete="off">
+
+      <label for="pSenha">Nova senha de 4 números (deixe vazio para manter a atual)</label>
+      <input type="password" id="pSenha" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••">
+
+      <div class="janela-botoes">
+        <button class="btn destaque" type="submit">Salvar</button>
+        <button class="btn" type="button" id="btnCancelarPessoa">Cancelar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===== JANELA: RECEITA ===== -->
+  <dialog id="dlgReceita" class="janela larga">
+    <form id="formReceita" novalidate>
+      <h2 id="tituloReceita">Nova receita</h2>
+
+      <p class="info-registro" id="infoRegistro" hidden></p>
+
+      <label for="rPaciente">Nome do paciente *</label>
+      <input id="rPaciente" autocomplete="off">
+
+     <label for="rTipoCadastro">Identificação do paciente *</label>
+<select id="rTipoCadastro">
+  <option value="cadastro">Nº do cadastro</option>
+  <option value="nascimento">Data de nascimento</option>
+</select>
+
+<label for="rCadastro" id="rotuloCadastro">Nº do cadastro (somente números) *</label>
+<div class="campo-com-botao">
+  <input
+    id="rCadastro"
+    inputmode="numeric"
+    autocomplete="off"
+    placeholder="Digite o número do cadastro"
+  >
+  <button
+    class="btn"
+    type="button"
+    id="btnCalendarioNasc"
+    aria-label="Escolher data de nascimento"
+    title="Escolher data de nascimento"
+    hidden
+  >▦</button>
+  <input
+    type="date"
+    id="rCalendarioNasc"
+    class="calendario-oculto"
+    tabindex="-1"
+    aria-label="Escolher data de nascimento"
+  >
+</div>
+
+      <div class="duas-colunas">
+        <div>
+          <label for="rDataRetida">Data da receita retida *</label>
+          <input type="date" id="rDataRetida">
+        </div>
+        <div>
+          <label for="rDataEntrega">Data da receita entregue</label>
+          <input type="date" id="rDataEntrega">
+        </div>
+      </div>
+
+      <h3>Medicamentos da receita (<span id="rContagem">0</span>) *</h3>
+
+      <div class="linha-add">
+        <select id="rSelMed"></select>
+        <button class="btn" type="button" id="btnAddMed">Adicionar do catálogo</button>
+        <button class="btn" type="button" id="btnAddAvulso">Adicionar avulso</button>
+      </div>
+
+      <div id="rItens"></div>
+
+      <label for="rObs">Observações</label>
+      <textarea id="rObs" rows="3"></textarea>
+
+      <div class="janela-botoes">
+        <button class="btn destaque" type="submit">Salvar</button>
+        <button class="btn" type="button" id="btnCancelarReceita">Cancelar</button>
+        <button class="btn perigo" type="button" id="btnExcluirReceita" hidden>Excluir receita</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===== JANELA: MEDICAMENTO ===== -->
+  <dialog id="dlgMed" class="janela">
+    <form id="formMed">
+      <h2 id="tituloMed">Novo medicamento</h2>
+
+      <label for="mNome">Nome do medicamento *</label>
+      <input id="mNome" required autocomplete="off">
+
+      <label for="mDosagem">Dosagem (mg)</label>
+      <input id="mDosagem" autocomplete="off">
+
+      <div class="duas-colunas">
+        <div>
+          <label for="mManha">Quantidade pela manhã</label>
+          <input type="number" id="mManha" step="0.5" min="0" value="0">
+        </div>
+        <div>
+          <label for="mNoite">Quantidade à noite</label>
+          <input type="number" id="mNoite" step="0.5" min="0" value="0">
+        </div>
+      </div>
+
+      <div class="janela-botoes">
+        <button class="btn destaque" type="submit">Salvar</button>
+        <button class="btn" type="button" id="btnCancelarMed">Cancelar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===== JANELA: CONSULTAR RECEITA EXCLUÍDA (SOMENTE LEITURA) ===== -->
+  <dialog id="dlgExcluida" class="janela larga">
+    <h2>Receita excluída (somente consulta)</h2>
+    <div id="detalheExcluida"></div>
+    <div class="janela-botoes">
+      <button class="btn destaque" type="button" id="btnFecharExcluida">Fechar</button>
+    </div>
+  </dialog>
+
+  </dialog>
+
+  <dialog id="dlgAviso" class="dlg-aviso">
+    <div class="aviso-caixa">
+      <h2 id="avisoTitulo">Aviso</h2>
+      <p id="avisoTexto"></p>
+      <div class="aviso-botoes">
+        <button class="btn" type="button" id="avisoCancelar" hidden>Cancelar</button>
+        <button class="btn destaque" type="button" id="avisoOk">OK</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="js/app.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,878 @@
+/* ===== VARIÁVEIS: TEMA CLARO ===== */
+:root {
+  color-scheme: light;
+  --fundo: #eaf7fb;
+  --superficie: #ffffff;
+  --texto: #0f2f3d;
+  --texto-suave: #4b6b78;
+  --borda: #b9dde8;
+  --verde: #00a6a6;
+  --verde-escuro: #007c8a;
+  --verde-claro: #d2f3f1;
+  --azul-claro: #d6ecff;
+  --amarelo-claro: #fff1c7;
+  --vermelho: #d62f4b;
+  --sombra: 0 8px 28px rgba(0, 124, 138, 0.14);
+
+  --aguardando-fundo: #ffe8a8;
+  --aguardando-texto: #7a5200;
+  --entregue-fundo: #c6f4dc;
+  --entregue-texto: #046b40;
+  --demorada-fundo: #ffd9bd;
+  --demorada-texto: #8a3500;
+  --atrasada-fundo: #ffe1e6;
+  --alerta-fundo: #d62f4b;
+}
+
+/* ===== VARIÁVEIS: TEMA ESCURO ===== */
+html[data-tema="escuro"] {
+  color-scheme: dark;
+  --fundo: #07202b;
+  --superficie: #0e303d;
+  --texto: #e6f9fb;
+  --texto-suave: #9fcbd3;
+  --borda: #1f5565;
+  --verde: #20d3c9;
+  --verde-escuro: #5eead9;
+  --verde-claro: #0f4a52;
+  --azul-claro: #123f63;
+  --amarelo-claro: #5a4a12;
+  --vermelho: #ff7a8e;
+  --sombra: 0 8px 28px rgba(0, 0, 0, 0.35);
+
+  --aguardando-fundo: #6b5410;
+  --aguardando-texto: #ffe9a8;
+  --entregue-fundo: #0f5a45;
+  --entregue-texto: #b6fadf;
+  --demorada-fundo: #7a3d12;
+  --demorada-texto: #ffd9b8;
+  --atrasada-fundo: #4f1f2c;
+  --alerta-fundo: #e5476a;
+}
+
+/* ===== BASE ===== */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding-bottom: 60px;
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 20px;
+  line-height: 1.55;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+label.btn {
+  cursor: pointer;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* ===== TOPO ===== */
+.topo {
+  padding: 20px clamp(16px, 4vw, 42px);
+  background: var(--superficie);
+  border-bottom: 1px solid var(--borda);
+  border-top: 5px solid var(--verde);
+  box-shadow: var(--sombra);
+}
+
+.topo-linha,
+.topo-acoes,
+.topo-arquivos {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.topo-linha {
+  justify-content: space-between;
+}
+
+.topo h1 {
+  margin: 0;
+  color: var(--verde-escuro);
+  font-size: clamp(1.9rem, 3.4vw, 2.5rem);
+}
+
+.usuario {
+  font-weight: 700;
+}
+
+.topo-arquivos {
+  margin-top: 16px;
+}
+
+.status-arquivo {
+  margin: 10px 0 0;
+  color: var(--texto-suave);
+  font-size: 1rem;
+}
+
+.conteudo {
+  width: min(1500px, 100%);
+  margin: 0 auto;
+  padding: 24px clamp(14px, 3vw, 32px) 36px;
+}
+
+/* ===== BOTÕES ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 10px 18px;
+  border: 1px solid var(--borda);
+  border-radius: 9px;
+  background: var(--superficie);
+  color: var(--texto);
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.btn:hover {
+  border-color: var(--verde);
+  background: var(--verde-claro);
+}
+
+.btn.destaque {
+  background: linear-gradient(135deg, #00b8b0, #0090c8);
+  border-color: transparent;
+  color: #fff;
+}
+
+.btn.destaque:hover {
+  background: linear-gradient(135deg, #00a39c, #007bb0);
+}
+
+html[data-tema="escuro"] .btn.destaque {
+  background: linear-gradient(135deg, #20d3c9, #2aa8f0);
+  color: #04222b;
+}
+
+.btn.perigo {
+  border-color: var(--vermelho);
+  color: var(--vermelho);
+}
+
+.btn.pequeno {
+  min-height: 40px;
+  padding: 6px 14px;
+  font-size: 0.95rem;
+}
+
+/* ===== CARDS DE RESUMO ===== */
+.resumo {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 95px;
+  padding: 16px;
+  border: 1px solid var(--borda);
+  border-left: 5px solid var(--verde);
+  border-radius: 12px;
+  background: var(--superficie);
+  box-shadow: var(--sombra);
+}
+
+.card strong {
+  font-size: 2.2rem;
+  line-height: 1.15;
+}
+
+.card small {
+  margin-top: 4px;
+  color: var(--texto-suave);
+  font-size: 1.05rem;
+}
+
+.card.azul {
+  background: var(--azul-claro);
+  border-left-color: #1e90ff;
+}
+
+.card.verde {
+  background: var(--verde-claro);
+  border-left-color: #12b886;
+}
+
+.card.amarelo {
+  background: var(--amarelo-claro);
+  border-left-color: #f5b301;
+}
+
+/* ===== ABAS ===== */
+.abas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--borda);
+}
+
+.aba {
+  padding: 12px 18px;
+  border: 1px solid transparent;
+  border-bottom: 3px solid transparent;
+  border-radius: 9px 9px 0 0;
+  background: transparent;
+  color: var(--texto-suave);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.aba:hover {
+  background: var(--verde-claro);
+  color: var(--texto);
+}
+
+.aba.ativa {
+  border-bottom-color: var(--verde);
+  color: var(--verde-escuro);
+}
+
+.contador {
+  display: inline-block;
+  min-width: 1.6em;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 20px;
+  background: var(--verde-claro);
+  color: var(--texto);
+  text-align: center;
+  font-size: 0.85em;
+}
+
+/* ===== FILTROS E CAMPOS ===== */
+.barra-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.barra-filtros input[type="search"] {
+  flex: 1 1 280px;
+}
+
+.barra-filtros select {
+  flex: 0 1 230px;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  min-height: 50px;
+  padding: 9px 11px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--superficie);
+  color: var(--texto);
+  font-size: 1.05rem;
+}
+
+textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--verde);
+  outline: 3px solid color-mix(in srgb, var(--verde) 18%, transparent);
+}
+
+/* ===== TABELAS ===== */
+.tabela-box {
+  overflow: auto;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: var(--superficie);
+  box-shadow: var(--sombra);
+}
+
+table {
+  width: 100%;
+  min-width: 700px;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--borda);
+  text-align: left;
+  vertical-align: top;
+  font-size: 1.05rem;
+}
+
+th {
+  background: var(--verde-claro);
+  color: var(--verde-escuro);
+  font-weight: 700;
+}
+
+tbody tr:hover {
+  background: color-mix(in srgb, var(--verde-claro) 42%, var(--superficie));
+}
+
+.ordenar {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-weight: 700;
+  text-align: left;
+}
+
+.ordenar:hover {
+  color: var(--verde-escuro);
+  text-decoration: underline;
+}
+
+.seta {
+  margin-left: 5px;
+  font-size: 0.75em;
+}
+
+.vazio {
+  padding: 22px;
+  color: var(--texto-suave);
+  text-align: center;
+}
+
+.link-nome {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--verde-escuro);
+  font-weight: 700;
+  text-align: left;
+  text-decoration: underline;
+}
+
+.link-nome:hover {
+  color: var(--verde);
+}
+
+/* ===== STATUS E ALERTAS ===== */
+.tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tag.aguardando {
+  background: var(--aguardando-fundo);
+  color: var(--aguardando-texto);
+}
+
+.tag.entregue {
+  background: var(--entregue-fundo);
+  color: var(--entregue-texto);
+}
+
+.tag.entregue.demorada {
+  background: var(--demorada-fundo);
+  color: var(--demorada-texto);
+}
+
+tr.atrasada,
+tr.atrasada:hover {
+  background: var(--atrasada-fundo);
+}
+
+.alerta-dias {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--alerta-fundo);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.aviso-aba,
+.info-registro {
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: var(--verde-claro);
+  color: var(--texto);
+  font-size: 1.05rem;
+}
+
+.aviso-aba {
+  border-left: 4px solid var(--verde);
+}
+
+.info-registro {
+  border-radius: 8px;
+}
+
+/* ===== JANELAS ===== */
+.janela {
+  width: min(540px, calc(100% - 28px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 24px;
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+  background: var(--superficie);
+  color: var(--texto);
+  box-shadow: var(--sombra);
+  font-size: 1.05rem;
+}
+
+.janela::backdrop {
+  background: rgba(7, 20, 18, 0.64);
+}
+
+.janela.larga {
+  width: min(760px, calc(100% - 28px));
+}
+
+.janela h2 {
+  margin: 0 0 18px;
+  color: var(--verde-escuro);
+}
+
+.janela h3 {
+  margin: 20px 0 10px;
+}
+
+.janela label {
+  display: block;
+  margin: 12px 0 5px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.janela-botoes,
+.linha-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 18px;
+}
+
+.linha-add select {
+  flex: 1 1 220px;
+}
+
+.duas-colunas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.erro-login {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #ffe4e4;
+  color: #8d2020;
+}
+
+html[data-tema="escuro"] .erro-login {
+  background: #512d2d;
+  color: #ffd1d1;
+}
+
+/* ===== MEDICAMENTOS DENTRO DA RECEITA ===== */
+#rItens {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+#rItens > * {
+  padding: 12px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--fundo);
+}
+
+.item-med {
+  display: grid;
+  grid-template-columns:
+    minmax(150px, 2fr)
+    minmax(100px, 1fr)
+    minmax(82px, 0.75fr)
+    minmax(82px, 0.75fr)
+    auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.item-med input {
+  width: 100%;
+  min-width: 0;
+}
+
+.item-med button {
+  align-self: end;
+  white-space: nowrap;
+}
+
+.sem-itens {
+  color: var(--texto-suave);
+  text-align: center;
+}
+
+/* ===== JANELA DE AVISO ===== */
+.dlg-aviso {
+  width: 90%;
+  max-width: 420px;
+  padding: 0;
+  border: none;
+  border-radius: 16px;
+  background: transparent;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+}
+
+.dlg-aviso::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.aviso-caixa {
+  padding: 24px;
+  border-radius: 16px;
+  background: var(--superficie);
+  color: var(--texto);
+}
+
+.aviso-caixa h2 {
+  margin: 0 0 12px 0;
+  color: var(--verde-escuro);
+  font-size: 1.3rem;
+}
+
+html[data-tema="escuro"] .aviso-caixa h2 {
+  color: var(--verde);
+}
+
+.aviso-caixa p {
+  margin: 0 0 20px 0;
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+
+.aviso-botoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* ===== CAMPO DE CADASTRO COM CALENDÁRIO ===== */
+.campo-com-botao {
+  position: relative;
+  width: 100%;
+}
+
+.campo-com-botao #rCadastro {
+  width: 100%;
+  padding-right: 58px;
+}
+
+.campo-com-botao #btnCalendarioNasc {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  z-index: 2;
+  width: 50px;
+  min-height: 0;
+  height: calc(100% - 2px);
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--borda);
+  border-radius: 0 8px 8px 0;
+  background: transparent;
+  color: var(--texto);
+  font-size: 0;
+}
+
+.campo-com-botao #btnCalendarioNasc::after {
+  content: "▦";
+  font-size: 1.4rem;
+}
+
+.campo-com-botao #btnCalendarioNasc:hover {
+  background: var(--verde-claro);
+}
+
+/* Campo de data real: invisível, mas funcional para abrir o calendário */
+.campo-com-botao #rCalendarioNasc {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  min-height: 0;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ===== RODAPÉ FIXO ===== */
+.rodape {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  padding: 10px 16px;
+  border-top: 1px solid var(--borda);
+  background: var(--superficie);
+  color: var(--texto-suave);
+  text-align: center;
+  font-size: 1rem;
+}
+
+/* ===== TELAS PEQUENAS ===== */
+@media (max-width: 760px) {
+  body {
+    font-size: 18px;
+  }
+
+  .topo-linha {
+    align-items: flex-start;
+  }
+
+  .topo-acoes {
+    width: 100%;
+  }
+
+  .topo-acoes .btn {
+    flex: 1 1 auto;
+  }
+
+  .resumo {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .card {
+    min-height: 82px;
+    padding: 12px;
+  }
+
+  .card strong {
+    font-size: 1.9rem;
+  }
+
+  .duas-colunas {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .janela-botoes > * {
+    flex: 1 1 140px;
+  }
+}
+
+@media (max-width: 680px) {
+  .item-med {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .item-med input:first-child,
+  .item-med button {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 420px) {
+  .abas {
+    gap: 2px;
+  }
+
+  .aba {
+    flex: 1 1 42%;
+    padding: 10px 7px;
+  }
+
+  .topo-arquivos > * {
+    flex: 1 1 100%;
+  }
+}
+
+/* ===== CAMPO DE CADASTRO COM CALENDÁRIO NA MESMA CAIXA ===== */
+.campo-com-botao {
+  position: relative;
+  width: 100%;
+}
+
+.campo-com-botao #rCadastro {
+  width: 100%;
+  padding-right: 60px;
+}
+
+/* Ícone do calendário dentro do campo */
+.campo-com-botao #btnCalendarioNasc {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: calc(100% - 2px);
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--borda);
+  border-radius: 0 8px 8px 0;
+  background: transparent;
+  color: var(--texto);
+  font-size: 0;
+}
+
+.campo-com-botao #btnCalendarioNasc::after {
+  content: "📅";
+  font-size: 1.4rem;
+}
+
+.campo-com-botao #btnCalendarioNasc:hover {
+  background: var(--verde-claro);
+}
+
+/* Campo de data real: invisível, mas funcional */
+.campo-com-botao #rCalendarioNasc {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  min-height: 0;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ===== CAMPO DE IDENTIFICAÇÃO: CADASTRO OU NASCIMENTO ===== */
+.campo-com-botao {
+  position: relative;
+  width: 100%;
+}
+
+.campo-com-botao #rCadastro {
+  width: 100%;
+}
+
+/* Ícone do calendário dentro do campo */
+.campo-com-botao #btnCalendarioNasc {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  z-index: 2;
+  width: 52px;
+  height: calc(100% - 2px);
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--borda);
+  border-radius: 0 7px 7px 0;
+  background: transparent;
+  font-size: 1.5rem;
+}
+
+.campo-com-botao #btnCalendarioNasc:hover {
+  background: var(--verde-claro);
+}
+
+/* Campo de data real: invisível, mas funcional */
+.calendario-oculto {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Cores de cada tipo */
+.tipo-cadastro #rTipoCadastro,
+.tipo-cadastro #rCadastro {
+  border: 2px solid #1e78d2;
+}
+
+.tipo-cadastro #rotuloCadastro {
+  color: #1e78d2;
+}
+
+.tipo-nascimento #rTipoCadastro,
+.tipo-nascimento #rCadastro {
+  border: 2px solid #e07b00;
+}
+
+.tipo-nascimento #rotuloCadastro {
+  color: #e07b00;
+}
+
+.tipo-nascimento #rCadastro {
+  padding-right: 62px;
+}
+
+/* Evita ícones duplicados no botão e esconde o campo auxiliar */
+.campo-com-botao {
+  position: relative;
+}
+
+.campo-com-botao #btnCalendarioNasc {
+  font-size: 0;
+}
+
+.campo-com-botao #btnCalendarioNasc::after {
+  content: "📅";
+  font-size: 1.2rem;
+}
+
+.campo-com-botao #rCalendarioNasc {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
