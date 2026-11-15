@@ -508,6 +508,23 @@ html[data-tema="escuro"] .erro-login {
   color: #ffd1d1;
 }
 
+/* ===== DOSAGEM: VALOR + UNIDADE ===== */
+.dosagem-campo {
+  display: grid;
+  grid-template-columns: 1fr 110px;
+  gap: 8px;
+}
+
+/* Quando existe o botão "Adicionar tipo" (janela Novo medicamento) */
+.dosagem-campo:has(#btnNovaUnidade) {
+  grid-template-columns: 1fr 110px auto;
+}
+
+.dosagem-campo input,
+.dosagem-campo select {
+  min-width: 0;
+}
+
 /* ===== MEDICAMENTOS DENTRO DA RECEITA ===== */
 #rItens {
   display: grid;
@@ -526,7 +543,7 @@ html[data-tema="escuro"] .erro-login {
   display: grid;
   grid-template-columns:
     minmax(150px, 2fr)
-    minmax(100px, 1fr)
+    minmax(200px, 1.6fr)
     minmax(82px, 0.75fr)
     minmax(82px, 0.75fr)
     auto;
@@ -537,6 +554,10 @@ html[data-tema="escuro"] .erro-login {
 .item-med input {
   width: 100%;
   min-width: 0;
+}
+
+.item-med label {
+  font-size: 1rem;
 }
 
 .item-med button {
@@ -593,7 +614,7 @@ html[data-tema="escuro"] .aviso-caixa h2 {
   gap: 10px;
 }
 
-/* ===== CAMPO DE CADASTRO COM CALENDÁRIO ===== */
+/* ===== CAMPO DE IDENTIFICAÇÃO: CADASTRO OU NASCIMENTO ===== */
 .campo-com-botao {
   position: relative;
   width: 100%;
@@ -601,29 +622,32 @@ html[data-tema="escuro"] .aviso-caixa h2 {
 
 .campo-com-botao #rCadastro {
   width: 100%;
-  padding-right: 58px;
 }
 
+/* Botão do calendário dentro do campo */
 .campo-com-botao #btnCalendarioNasc {
   position: absolute;
   top: 1px;
   right: 1px;
   z-index: 2;
-  width: 50px;
-  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
   height: calc(100% - 2px);
+  min-height: 0;
   padding: 0;
   border: 0;
   border-left: 1px solid var(--borda);
-  border-radius: 0 8px 8px 0;
+  border-radius: 0 7px 7px 0;
   background: transparent;
   color: var(--texto);
   font-size: 0;
 }
 
 .campo-com-botao #btnCalendarioNasc::after {
-  content: "▦";
-  font-size: 1.4rem;
+  content: "📅";
+  font-size: 1.2rem;
 }
 
 .campo-com-botao #btnCalendarioNasc:hover {
@@ -631,17 +655,41 @@ html[data-tema="escuro"] .aviso-caixa h2 {
 }
 
 /* Campo de data real: invisível, mas funcional para abrir o calendário */
-.campo-com-botao #rCalendarioNasc {
+.campo-com-botao #rCalendarioNasc,
+.calendario-oculto {
   position: absolute;
-  right: 0;
+  left: 0;
   bottom: 0;
   width: 1px;
-  min-height: 0;
   height: 1px;
+  min-height: 0;
   padding: 0;
   border: 0;
   opacity: 0;
   pointer-events: none;
+}
+
+/* Cores de cada tipo */
+.tipo-cadastro #rTipoCadastro,
+.tipo-cadastro #rCadastro {
+  border: 2px solid #1e78d2;
+}
+
+.tipo-cadastro #rotuloCadastro {
+  color: #1e78d2;
+}
+
+.tipo-nascimento #rTipoCadastro,
+.tipo-nascimento #rCadastro {
+  border: 2px solid #e07b00;
+}
+
+.tipo-nascimento #rotuloCadastro {
+  color: #e07b00;
+}
+
+.tipo-nascimento #rCadastro {
+  padding-right: 62px;
 }
 
 /* ===== RODAPÉ FIXO ===== */
@@ -706,7 +754,8 @@ html[data-tema="escuro"] .aviso-caixa h2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .item-med input:first-child,
+  .item-med label:first-child,
+  .item-med label:nth-child(2),
   .item-med button {
     grid-column: 1 / -1;
   }
@@ -725,154 +774,4 @@ html[data-tema="escuro"] .aviso-caixa h2 {
   .topo-arquivos > * {
     flex: 1 1 100%;
   }
-}
-
-/* ===== CAMPO DE CADASTRO COM CALENDÁRIO NA MESMA CAIXA ===== */
-.campo-com-botao {
-  position: relative;
-  width: 100%;
-}
-
-.campo-com-botao #rCadastro {
-  width: 100%;
-  padding-right: 60px;
-}
-
-/* Ícone do calendário dentro do campo */
-.campo-com-botao #btnCalendarioNasc {
-  position: absolute;
-  top: 1px;
-  right: 1px;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 50px;
-  height: calc(100% - 2px);
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  border-left: 1px solid var(--borda);
-  border-radius: 0 8px 8px 0;
-  background: transparent;
-  color: var(--texto);
-  font-size: 0;
-}
-
-.campo-com-botao #btnCalendarioNasc::after {
-  content: "📅";
-  font-size: 1.4rem;
-}
-
-.campo-com-botao #btnCalendarioNasc:hover {
-  background: var(--verde-claro);
-}
-
-/* Campo de data real: invisível, mas funcional */
-.campo-com-botao #rCalendarioNasc {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 100%;
-  min-height: 0;
-  height: 1px;
-  padding: 0;
-  border: 0;
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* ===== CAMPO DE IDENTIFICAÇÃO: CADASTRO OU NASCIMENTO ===== */
-.campo-com-botao {
-  position: relative;
-  width: 100%;
-}
-
-.campo-com-botao #rCadastro {
-  width: 100%;
-}
-
-/* Ícone do calendário dentro do campo */
-.campo-com-botao #btnCalendarioNasc {
-  position: absolute;
-  top: 1px;
-  right: 1px;
-  z-index: 2;
-  width: 52px;
-  height: calc(100% - 2px);
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  border-left: 1px solid var(--borda);
-  border-radius: 0 7px 7px 0;
-  background: transparent;
-  font-size: 1.5rem;
-}
-
-.campo-com-botao #btnCalendarioNasc:hover {
-  background: var(--verde-claro);
-}
-
-/* Campo de data real: invisível, mas funcional */
-.calendario-oculto {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 100%;
-  height: 1px;
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* Cores de cada tipo */
-.tipo-cadastro #rTipoCadastro,
-.tipo-cadastro #rCadastro {
-  border: 2px solid #1e78d2;
-}
-
-.tipo-cadastro #rotuloCadastro {
-  color: #1e78d2;
-}
-
-.tipo-nascimento #rTipoCadastro,
-.tipo-nascimento #rCadastro {
-  border: 2px solid #e07b00;
-}
-
-.tipo-nascimento #rotuloCadastro {
-  color: #e07b00;
-}
-
-.tipo-nascimento #rCadastro {
-  padding-right: 62px;
-}
-
-/* Evita ícones duplicados no botão e esconde o campo auxiliar */
-.campo-com-botao {
-  position: relative;
-}
-
-.campo-com-botao #btnCalendarioNasc {
-  font-size: 0;
-}
-
-.campo-com-botao #btnCalendarioNasc::after {
-  content: "📅";
-  font-size: 1.2rem;
-}
-
-.campo-com-botao #rCalendarioNasc {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 1px;
-  height: 1px;
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  opacity: 0;
-  pointer-events: none;
 }

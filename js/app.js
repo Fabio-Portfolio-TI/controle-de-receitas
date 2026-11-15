@@ -46,7 +46,8 @@ function criarBancoVazio() {
     usuarios: [],
     medicamentos: [],
     receitas: [],
-    excluidos: []
+    excluidos: [],
+    unidades: []
   };
 }
 
@@ -68,7 +69,10 @@ function ajustarBanco(dados) {
     })),
     medicamentos: Array.isArray(dados.medicamentos) ? dados.medicamentos : [],
     receitas: Array.isArray(dados.receitas) ? dados.receitas : [],
-    excluidos: Array.isArray(dados.excluidos) ? dados.excluidos : []
+    excluidos: Array.isArray(dados.excluidos) ? dados.excluidos : [],
+    unidades: Array.isArray(dados.unidades)
+      ? dados.unidades.filter(u => typeof u === 'string' && u.trim() !== '')
+      : []
   };
 }
 
@@ -154,11 +158,100 @@ function statusDaReceita(receita) {
   return receita.dataEntrega ? 'entregue' : 'aguardando';
 }
 
-// Rótulo e valor da identificação (cadastro ou nascimento)
+// Rótulo da identificação (cadastro ou nascimento)
 function rotuloIdentificacao(receita) {
   return receita.tipoCadastro === 'nascimento'
     ? 'Data de nascimento'
     : 'Nº do cadastro';
+}
+
+// ===== DOSAGEM COM UNIDADE (mg, ml, cp, mcg e tipos novos) =====
+const UNIDADES_PADRAO = ['mg', 'ml', 'cp', 'mcg'];
+const UNIDADE_VALIDA = /^[A-Za-zÀ-ÖØ-öø-ÿ%\/.]{1,12}$/;
+
+function todasUnidades() {
+  return [...UNIDADES_PADRAO, ...db.unidades];
+}
+
+// Registros antigos podem ter "10 mg" no mesmo texto: separa valor e unidade
+function normalizarDosagem(objeto) {
+  if (!objeto) return objeto;
+
+  const texto = String(objeto.dosagem || '').trim();
+  const partes = /^(\d+(?:[.,]\d+)?)\s*([A-Za-zÀ-ÖØ-öø-ÿ%\/.]*)$/.exec(texto);
+
+  if (partes) {
+    objeto.dosagem = partes[1];
+    const unidade = partes[2].toLowerCase();
+    if (!objeto.unidadeDosagem) {
+      objeto.unidadeDosagem = unidade || 'mg';
+    }
+  } else if (!objeto.unidadeDosagem) {
+    objeto.unidadeDosagem = 'mg';
+  }
+
+  return objeto;
+}
+
+// Texto para exibir, por exemplo: "10 mg"
+function textoDosagem(objeto) {
+  if (!objeto) return '—';
+  const copia = normalizarDosagem({ ...objeto });
+  const valor = String(copia.dosagem || '').trim();
+  if (!valor) return '—';
+
+  return copia.unidadeDosagem ? `${valor} ${copia.unidadeDosagem}` : valor;
+}
+
+// Lista de opções para os seletores de unidade
+function opcoesUnidade(selecionada, comOpcaoNova = false) {
+  const lista = todasUnidades();
+  if (selecionada && !lista.includes(selecionada)) lista.push(selecionada);
+
+  let html = lista.map(unidade =>
+    `<option value="${escapar(unidade)}" ${unidade === selecionada ? 'selected' : ''}>${escapar(unidade)}</option>`
+  ).join('');
+
+  if (comOpcaoNova) {
+    html += '<option value="__novo__">+ Novo tipo…</option>';
+  }
+
+  return html;
+}
+
+function preencherUnidadesMed(selecionada = 'mg') {
+  $('mUnidadeDosagem').innerHTML = opcoesUnidade(selecionada);
+  $('mUnidadeDosagem').value = selecionada;
+}
+
+// Pergunta um tipo novo, valida e salva. Devolve o tipo ou '' se cancelado
+function adicionarUnidade() {
+  const resposta = prompt('Digite o novo tipo de dosagem (exemplos: gotas, UI, g):');
+  if (resposta === null) return '';
+
+  const nova = resposta.trim().toLowerCase();
+
+  if (!nova) return '';
+
+  if (!UNIDADE_VALIDA.test(nova)) {
+    mostrarAviso(
+      'Atenção',
+      'O tipo deve ter até 12 caracteres, usando apenas letras, %, / ou ponto.'
+    );
+    return '';
+  }
+
+  const existente = todasUnidades().find(u => u.toLowerCase() === nova);
+  if (existente) return existente;
+
+  db.unidades.push(nova);
+  try {
+    localStorage.setItem(CHAVE_DADOS, JSON.stringify(db));
+  } catch (erro) {
+    // o salvamento completo acontece depois, junto com o restante
+  }
+
+  return nova;
 }
 
 // ===== CÁLCULO DE DIAS =====
@@ -284,7 +377,7 @@ function mostrarLogin() {
   usuarioAtual = null;
   bloquearTelaPrincipal(true);
 
-  ['dlgReceita', 'dlgMed', 'dlgPessoa', 'dlgNovoUsuario'].forEach(nome => {
+  ['dlgReceita', 'dlgMed', 'dlgPessoa', 'dlgNovoUsuario', 'dlgExcluida'].forEach(nome => {
     if ($(nome).open) $(nome).close();
   });
 
@@ -430,7 +523,8 @@ function textoDosDados() {
       usuarios: db.usuarios,
       medicamentos: db.medicamentos,
       receitas: db.receitas,
-      excluidos: db.excluidos
+      excluidos: db.excluidos,
+      unidades: db.unidades
     },
     null,
     2
@@ -586,7 +680,7 @@ function mostrarMedicamentos() {
 
   const medicamentos = db.medicamentos
     .filter(medicamento =>
-      `${medicamento.nome} ${medicamento.dosagem || ''}`
+      `${medicamento.nome} ${textoDosagem(medicamento)}`
         .toLocaleLowerCase('pt-BR')
         .includes(busca)
     )
@@ -600,7 +694,7 @@ function mostrarMedicamentos() {
     return `
       <tr>
         <td data-label="Medicamento"><strong>${escapar(medicamento.nome)}</strong></td>
-        <td data-label="Dosagem">${escapar(medicamento.dosagem) || '—'}</td>
+        <td data-label="Dosagem">${escapar(textoDosagem(medicamento))}</td>
         <td data-label="Manhã">${manha}</td>
         <td data-label="Noite">${noite}</td>
         <td data-label="Total/dia">${total}</td>
@@ -647,29 +741,31 @@ function mostrarExcluidos() {
   $('vazioExcluidos').hidden = lista.length > 0;
 }
 
-// ===== CONSULTAR RECEITA EXCLUÍDA (SOMENTE LEITURA) =====
-$('listaExcluidos').addEventListener('click', evento => {
-  const botao = evento.target.closest('[data-consultar-excluida]');
-  if (!botao) return;
-
-  const receita = db.excluidos.find(
-    item => item.id === botao.dataset.consultarExcluida
-  );
-
-  if (!receita) return;
-
+// ===== CONSULTAR RECEITA (SOMENTE LEITURA) =====
+function abrirConsulta(receita, titulo) {
   const itens = Array.isArray(receita.itens) ? receita.itens : [];
 
   const linhasMedicamentos = itens.length
     ? itens.map(item => `
         <tr>
           <td>${escapar(item.nome) || '—'}</td>
-          <td>${escapar(item.dosagem) || '—'}</td>
+          <td>${escapar(textoDosagem(item))}</td>
           <td>${numero(item.manha)}</td>
           <td>${numero(item.noite)}</td>
         </tr>
       `).join('')
     : '<tr><td colspan="4">Nenhum medicamento registrado.</td></tr>';
+
+  const linhasExclusao = receita.excluidaPor
+    ? `
+      <p><strong>Excluída por:</strong> ${escapar(nomeDaPessoa(receita.excluidaPor))}</p>
+      <p><strong>Excluída em:</strong> ${formatarDataHora(receita.excluidaEm)}</p>
+    `
+    : '';
+
+  const linhaAlteracao = receita.alteradaPor
+    ? `<p><strong>Última alteração:</strong> ${escapar(nomeDaPessoa(receita.alteradaPor))} em ${formatarDataHora(receita.alteradaEm)}</p>`
+    : '';
 
   $('detalheExcluida').innerHTML = `
     <p><strong>Paciente:</strong> ${escapar(receita.paciente) || '—'}</p>
@@ -678,8 +774,8 @@ $('listaExcluidos').addEventListener('click', evento => {
     <p><strong>Retida por:</strong> ${escapar(nomeDaPessoa(receita.retidaPor))}</p>
     <p><strong>Retirada em:</strong> ${formatarData(receita.dataEntrega)}</p>
     <p><strong>Entregue por:</strong> ${escapar(nomeDaPessoa(receita.entreguePor))}</p>
-    <p><strong>Excluída por:</strong> ${escapar(nomeDaPessoa(receita.excluidaPor))}</p>
-    <p><strong>Excluída em:</strong> ${formatarDataHora(receita.excluidaEm)}</p>
+    ${linhaAlteracao}
+    ${linhasExclusao}
 
     <h3>Medicamentos</h3>
     <div class="tabela-box">
@@ -700,7 +796,23 @@ $('listaExcluidos').addEventListener('click', evento => {
     <p>${escapar(receita.obs) || '—'}</p>
   `;
 
+  const tituloJanela = $('dlgExcluida').querySelector('h2');
+  if (tituloJanela) tituloJanela.textContent = titulo;
+
   $('dlgExcluida').showModal();
+}
+
+$('listaExcluidos').addEventListener('click', evento => {
+  const botao = evento.target.closest('[data-consultar-excluida]');
+  if (!botao) return;
+
+  const receita = db.excluidos.find(
+    item => item.id === botao.dataset.consultarExcluida
+  );
+
+  if (!receita) return;
+
+  abrirConsulta(receita, 'Receita excluída (somente consulta)');
 });
 
 $('btnFecharExcluida').addEventListener('click', () => {
@@ -797,6 +909,12 @@ function textoInfoRegistro(receita) {
 function abrirReceita(id = '') {
   const receita = db.receitas.find(item => item.id === id);
 
+  // Receita entregue: abre somente para consulta
+  if (receita && receita.dataEntrega) {
+    abrirConsulta(receita, 'Receita entregue (somente consulta)');
+    return;
+  }
+
   $('formReceita').dataset.id = receita ? receita.id : '';
   $('tituloReceita').textContent =
     receita ? 'Conferir ou alterar receita' : 'Nova receita';
@@ -818,15 +936,20 @@ function abrirReceita(id = '') {
 
   $('rSelMed').innerHTML =
     '<option value="">Escolha um medicamento do catálogo...</option>' +
-    db.medicamentos.map(medicamento => `
-      <option value="${escapar(medicamento.id)}">
-        ${escapar(medicamento.nome)} ${escapar(medicamento.dosagem || '')}
-      </option>
-    `).join('');
+    db.medicamentos.map(medicamento => {
+      const dosagem = medicamento.dosagem ? ` - ${textoDosagem(medicamento)}` : '';
+      return `
+        <option value="${escapar(medicamento.id)}">
+          ${escapar(medicamento.nome)}${escapar(dosagem)}
+        </option>
+      `;
+    }).join('');
 
   itensTemporarios = receita
     ? JSON.parse(JSON.stringify(receita.itens || []))
     : [];
+
+  itensTemporarios.forEach(normalizarDosagem);
 
   $('btnExcluirReceita').hidden = !receita;
   mostrarItensDaReceita();
@@ -853,8 +976,14 @@ function mostrarItensDaReceita() {
 
       <label>
         <span>Dosagem</span>
-        <input data-indice="${indice}" data-campo="dosagem"
-          value="${escapar(item.dosagem)}" placeholder="Ex.: 10 mg">
+        <div class="dosagem-campo">
+          <input data-indice="${indice}" data-campo="dosagem"
+            inputmode="decimal" value="${escapar(item.dosagem)}" placeholder="Ex.: 10">
+          <select data-indice="${indice}" data-campo="unidadeDosagem"
+            aria-label="Unidade da dosagem">
+            ${opcoesUnidade(item.unidadeDosagem || 'mg', true)}
+          </select>
+        </div>
       </label>
 
       <label>
@@ -880,6 +1009,19 @@ $('rItens').addEventListener('input', evento => {
   const campo = evento.target.dataset.campo;
 
   if (indice === undefined || !campo) return;
+
+  // Escolheu "+ Novo tipo…" na lista de unidades
+  if (campo === 'unidadeDosagem' && evento.target.value === '__novo__') {
+    const nova = adicionarUnidade();
+    if (nova) itensTemporarios[indice].unidadeDosagem = nova;
+    mostrarItensDaReceita();
+    return;
+  }
+
+  // Dosagem: somente números, vírgula ou ponto
+  if (campo === 'dosagem') {
+    evento.target.value = evento.target.value.replace(/[^0-9.,]/g, '');
+  }
 
   itensTemporarios[indice][campo] =
     campo === 'manha' || campo === 'noite'
@@ -907,11 +1049,14 @@ $('btnAddMed').addEventListener('click', () => {
     return;
   }
 
+  const copia = normalizarDosagem({ ...medicamento });
+
   itensTemporarios.push({
-    nome: medicamento.nome,
-    dosagem: medicamento.dosagem || '',
-    manha: numero(medicamento.manha),
-    noite: numero(medicamento.noite)
+    nome: copia.nome,
+    dosagem: copia.dosagem || '',
+    unidadeDosagem: copia.unidadeDosagem || 'mg',
+    manha: numero(copia.manha),
+    noite: numero(copia.noite)
   });
 
   $('rSelMed').value = '';
@@ -922,6 +1067,7 @@ $('btnAddAvulso').addEventListener('click', () => {
   itensTemporarios.push({
     nome: '',
     dosagem: '',
+    unidadeDosagem: 'mg',
     manha: 0,
     noite: 0
   });
@@ -938,6 +1084,7 @@ $('btnCancelarReceita').addEventListener('click', () => {
 // ===== VALIDAÇÃO DOS CAMPOS DA RECEITA =====
 const SOMENTE_LETRAS = /^[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ '.\-]*$/;
 const SOMENTE_NUMEROS = /^\d+$/;
+const DOSAGEM_VALIDA = /^\d+([.,]\d+)?$/;
 
 $('rPaciente').addEventListener('input', () => {
   $('rPaciente').value =
@@ -1078,6 +1225,25 @@ function validarReceita() {
     return avisarCampo('Inclua pelo menos um medicamento na receita, com o nome preenchido.', $('rSelMed'));
   }
 
+  for (const item of itensValidos) {
+    const nome = String(item.nome).trim();
+
+    if (!/[A-Za-zÀ-ÖØ-öø-ÿ]/.test(nome)) {
+      return avisarCampo(
+        `O nome do medicamento "${nome}" deve conter letras. Não pode ser apenas números.`,
+        null
+      );
+    }
+
+    const dosagem = String(item.dosagem || '').trim();
+    if (dosagem && !DOSAGEM_VALIDA.test(dosagem)) {
+      return avisarCampo(
+        `A dosagem de "${nome}" deve conter apenas números. Exemplo: 10 ou 0,5.`,
+        null
+      );
+    }
+  }
+
   return true;
 }
 
@@ -1089,12 +1255,16 @@ $('formReceita').addEventListener('submit', evento => {
 
   const itens = itensTemporarios
     .filter(item => String(item.nome || '').trim() !== '')
-    .map(item => ({
-      nome: String(item.nome).trim(),
-      dosagem: String(item.dosagem || '').trim(),
-      manha: numero(item.manha),
-      noite: numero(item.noite)
-    }));
+    .map(item => {
+      const dosagem = String(item.dosagem || '').trim();
+      return {
+        nome: String(item.nome).trim(),
+        dosagem,
+        unidadeDosagem: dosagem ? (item.unidadeDosagem || 'mg') : '',
+        manha: numero(item.manha),
+        noite: numero(item.noite)
+      };
+    });
 
   const dadosReceita = {
     paciente: $('rPaciente').value.trim(),
@@ -1167,15 +1337,17 @@ $('btnExcluirReceita').addEventListener('click', () => {
 // ===== MEDICAMENTOS =====
 function abrirMedicamento(id = '') {
   const medicamento = db.medicamentos.find(item => item.id === id);
+  const dados = medicamento ? normalizarDosagem({ ...medicamento }) : null;
 
   $('formMed').dataset.id = medicamento ? medicamento.id : '';
   $('tituloMed').textContent =
     medicamento ? 'Editar medicamento' : 'Novo medicamento';
 
-  $('mNome').value = medicamento ? medicamento.nome : '';
-  $('mDosagem').value = medicamento ? medicamento.dosagem || '' : '';
-  $('mManha').value = medicamento ? numero(medicamento.manha) : 0;
-  $('mNoite').value = medicamento ? numero(medicamento.noite) : 0;
+  $('mNome').value = dados ? dados.nome : '';
+  $('mDosagem').value = dados ? dados.dosagem || '' : '';
+  preencherUnidadesMed(dados ? dados.unidadeDosagem || 'mg' : 'mg');
+  $('mManha').value = dados ? numero(dados.manha) : 0;
+  $('mNoite').value = dados ? numero(dados.noite) : 0;
 
   $('dlgMed').showModal();
 }
@@ -1186,18 +1358,42 @@ $('btnCancelarMed').addEventListener('click', () => {
   $('dlgMed').close();
 });
 
+// Botão "Adicionar tipo" da dosagem
+$('btnNovaUnidade').addEventListener('click', () => {
+  const nova = adicionarUnidade();
+  if (nova) preencherUnidadesMed(nova);
+});
+
+// Dosagem: aceita somente números, vírgula ou ponto
+$('mDosagem').addEventListener('input', () => {
+  $('mDosagem').value = $('mDosagem').value.replace(/[^0-9.,]/g, '');
+});
+
 $('formMed').addEventListener('submit', evento => {
   evento.preventDefault();
 
   const dadosMedicamento = {
     nome: $('mNome').value.trim(),
     dosagem: $('mDosagem').value.trim(),
+    unidadeDosagem: $('mUnidadeDosagem').value,
     manha: numero($('mManha').value),
     noite: numero($('mNoite').value)
   };
 
   if (!dadosMedicamento.nome) {
     mostrarAviso('Atenção', 'Informe o nome do medicamento.', () => $('mNome').focus());
+    return;
+  }
+
+  // O nome precisa ter pelo menos uma letra (não pode ser só números)
+  if (!/[A-Za-zÀ-ÖØ-öø-ÿ]/.test(dadosMedicamento.nome)) {
+    mostrarAviso('Atenção', 'O nome do medicamento deve conter letras. Não pode ser apenas números.', () => $('mNome').focus());
+    return;
+  }
+
+  // A dosagem, se preenchida, precisa ser um número válido
+  if (dadosMedicamento.dosagem && !DOSAGEM_VALIDA.test(dadosMedicamento.dosagem)) {
+    mostrarAviso('Atenção', 'A dosagem deve conter apenas números. Exemplo: 10 ou 0,5.', () => $('mDosagem').focus());
     return;
   }
 

@@ -203,36 +203,20 @@
       <label for="rPaciente">Nome do paciente *</label>
       <input id="rPaciente" autocomplete="off">
 
-     <label for="rTipoCadastro">Identificação do paciente *</label>
-<select id="rTipoCadastro">
-  <option value="cadastro">Nº do cadastro</option>
-  <option value="nascimento">Data de nascimento</option>
-</select>
+      <label for="rTipoCadastro">Identificação do paciente *</label>
+      <select id="rTipoCadastro">
+        <option value="cadastro">Nº do cadastro</option>
+        <option value="nascimento">Data de nascimento</option>
+      </select>
 
-<label for="rCadastro" id="rotuloCadastro">Nº do cadastro (somente números) *</label>
-<div class="campo-com-botao">
-  <input
-    id="rCadastro"
-    inputmode="numeric"
-    autocomplete="off"
-    placeholder="Digite o número do cadastro"
-  >
-  <button
-    class="btn"
-    type="button"
-    id="btnCalendarioNasc"
-    aria-label="Escolher data de nascimento"
-    title="Escolher data de nascimento"
-    hidden
-  >▦</button>
-  <input
-    type="date"
-    id="rCalendarioNasc"
-    class="calendario-oculto"
-    tabindex="-1"
-    aria-label="Escolher data de nascimento"
-  >
-</div>
+      <label for="rCadastro" id="rotuloCadastro">Nº do cadastro (somente números) *</label>
+      <div class="campo-com-botao">
+        <input id="rCadastro" inputmode="numeric" autocomplete="off" placeholder="Digite o número do cadastro">
+        <button class="btn" type="button" id="btnCalendarioNasc" aria-label="Escolher data de nascimento"
+          title="Escolher data de nascimento" hidden>▦</button>
+        <input type="date" id="rCalendarioNasc" class="calendario-oculto" tabindex="-1"
+          aria-label="Escolher data de nascimento">
+      </div>
 
       <div class="duas-colunas">
         <div>
@@ -274,8 +258,17 @@
       <label for="mNome">Nome do medicamento *</label>
       <input id="mNome" required autocomplete="off">
 
-      <label for="mDosagem">Dosagem (mg)</label>
-      <input id="mDosagem" autocomplete="off">
+      <label for="mDosagem">Dosagem</label>
+      <div class="dosagem-campo">
+        <input id="mDosagem" type="text" inputmode="decimal" placeholder="Ex.: 10">
+        <select id="mUnidadeDosagem" aria-label="Unidade da dosagem">
+          <option value="mg">mg</option>
+          <option value="ml">ml</option>
+          <option value="cp">cp</option>
+          <option value="mcg">mcg</option>
+        </select>
+        <button class="btn" type="button" id="btnNovaUnidade">Adicionar tipo</button>
+      </div>
 
       <div class="duas-colunas">
         <div>
@@ -295,7 +288,7 @@
     </form>
   </dialog>
 
-  <!-- ===== JANELA: CONSULTAR RECEITA EXCLUÍDA (SOMENTE LEITURA) ===== -->
+  <!-- ===== JANELA: CONSULTAR RECEITA (SOMENTE LEITURA) ===== -->
   <dialog id="dlgExcluida" class="janela larga">
     <h2>Receita excluída (somente consulta)</h2>
     <div id="detalheExcluida"></div>
@@ -304,8 +297,7 @@
     </div>
   </dialog>
 
-  </dialog>
-
+  <!-- ===== JANELA DE AVISO ===== -->
   <dialog id="dlgAviso" class="dlg-aviso">
     <div class="aviso-caixa">
       <h2 id="avisoTitulo">Aviso</h2>
