@@ -96,9 +96,6 @@
             <tr>
               <th>Medicamento</th>
               <th>Dosagem</th>
-              <th>Manhã</th>
-              <th>Noite</th>
-              <th>Total/dia</th>
               <th>Ações</th>
             </tr>
           </thead>
@@ -270,16 +267,8 @@
         <button class="btn" type="button" id="btnNovaUnidade">Adicionar tipo</button>
       </div>
 
-      <div class="duas-colunas">
-        <div>
-          <label for="mManha">Quantidade pela manhã</label>
-          <input type="number" id="mManha" step="0.5" min="0" value="0">
-        </div>
-        <div>
-          <label for="mNoite">Quantidade à noite</label>
-          <input type="number" id="mNoite" step="0.5" min="0" value="0">
-        </div>
-      </div>
+      <label for="mTotal">Total/Dia</label>
+      <input type="number" id="mTotal" step="0.5" min="0" value="0">
 
       <div class="janela-botoes">
         <button class="btn destaque" type="submit">Salvar</button>

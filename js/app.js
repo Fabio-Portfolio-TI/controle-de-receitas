@@ -139,6 +139,17 @@ function numero(valor) {
   return Number(String(valor ?? '').replace(',', '.')) || 0;
 }
 
+// Total por dia. Registros antigos (com manhã e noite) mostram a soma dos dois
+function totalDoItem(objeto) {
+  if (!objeto) return 0;
+
+  if (objeto.total !== undefined && objeto.total !== null && objeto.total !== '') {
+    return numero(objeto.total);
+  }
+
+  return numero(objeto.manha) + numero(objeto.noite);
+}
+
 function escapar(texto) {
   return String(texto ?? '').replace(/[&<>"']/g, caractere => ({
     '&': '&',
@@ -686,18 +697,10 @@ function mostrarMedicamentos() {
     )
     .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 
-  $('listaMeds').innerHTML = medicamentos.map(medicamento => {
-    const manha = numero(medicamento.manha);
-    const noite = numero(medicamento.noite);
-    const total = manha + noite;
-
-    return `
+  $('listaMeds').innerHTML = medicamentos.map(medicamento => `
       <tr>
         <td data-label="Medicamento"><strong>${escapar(medicamento.nome)}</strong></td>
         <td data-label="Dosagem">${escapar(textoDosagem(medicamento))}</td>
-        <td data-label="Manhã">${manha}</td>
-        <td data-label="Noite">${noite}</td>
-        <td data-label="Total/dia">${total}</td>
         <td data-label="Ações">
           <button class="btn pequeno" type="button"
             data-acao="editar-medicamento" data-id="${escapar(medicamento.id)}">
@@ -709,8 +712,7 @@ function mostrarMedicamentos() {
           </button>
         </td>
       </tr>
-    `;
-  }).join('');
+    `).join('');
 
   $('vazioMeds').hidden = medicamentos.length > 0;
 }
@@ -750,11 +752,10 @@ function abrirConsulta(receita, titulo) {
         <tr>
           <td>${escapar(item.nome) || '—'}</td>
           <td>${escapar(textoDosagem(item))}</td>
-          <td>${numero(item.manha)}</td>
-          <td>${numero(item.noite)}</td>
+          <td>${totalDoItem(item)}</td>
         </tr>
       `).join('')
-    : '<tr><td colspan="4">Nenhum medicamento registrado.</td></tr>';
+    : '<tr><td colspan="3">Nenhum medicamento registrado.</td></tr>';
 
   const linhasExclusao = receita.excluidaPor
     ? `
@@ -784,8 +785,7 @@ function abrirConsulta(receita, titulo) {
           <tr>
             <th>Nome do medicamento</th>
             <th>Dosagem</th>
-            <th>Quantidade pela manhã</th>
-            <th>Quantidade à noite</th>
+            <th>Total/Dia</th>
           </tr>
         </thead>
         <tbody>${linhasMedicamentos}</tbody>
@@ -949,7 +949,10 @@ function abrirReceita(id = '') {
     ? JSON.parse(JSON.stringify(receita.itens || []))
     : [];
 
-  itensTemporarios.forEach(normalizarDosagem);
+  itensTemporarios.forEach(item => {
+    normalizarDosagem(item);
+    item.total = totalDoItem(item);
+  });
 
   $('btnExcluirReceita').hidden = !receita;
   mostrarItensDaReceita();
@@ -987,15 +990,9 @@ function mostrarItensDaReceita() {
       </label>
 
       <label>
-        <span>Quantidade pela manhã</span>
-        <input data-indice="${indice}" data-campo="manha"
-          type="number" step="0.5" min="0" value="${numero(item.manha)}">
-      </label>
-
-      <label>
-        <span>Quantidade à noite</span>
-        <input data-indice="${indice}" data-campo="noite"
-          type="number" step="0.5" min="0" value="${numero(item.noite)}">
+        <span>Total/Dia</span>
+        <input data-indice="${indice}" data-campo="total"
+          type="number" step="0.5" min="0" value="${totalDoItem(item)}">
       </label>
 
       <button type="button" class="btn pequeno perigo"
@@ -1024,7 +1021,7 @@ $('rItens').addEventListener('input', evento => {
   }
 
   itensTemporarios[indice][campo] =
-    campo === 'manha' || campo === 'noite'
+    campo === 'total'
       ? numero(evento.target.value)
       : evento.target.value;
 
@@ -1055,8 +1052,7 @@ $('btnAddMed').addEventListener('click', () => {
     nome: copia.nome,
     dosagem: copia.dosagem || '',
     unidadeDosagem: copia.unidadeDosagem || 'mg',
-    manha: numero(copia.manha),
-    noite: numero(copia.noite)
+    total: totalDoItem(copia)
   });
 
   $('rSelMed').value = '';
@@ -1068,8 +1064,7 @@ $('btnAddAvulso').addEventListener('click', () => {
     nome: '',
     dosagem: '',
     unidadeDosagem: 'mg',
-    manha: 0,
-    noite: 0
+    total: 0
   });
 
   mostrarItensDaReceita();
@@ -1261,8 +1256,7 @@ $('formReceita').addEventListener('submit', evento => {
         nome: String(item.nome).trim(),
         dosagem,
         unidadeDosagem: dosagem ? (item.unidadeDosagem || 'mg') : '',
-        manha: numero(item.manha),
-        noite: numero(item.noite)
+        total: totalDoItem(item)
       };
     });
 
@@ -1346,8 +1340,7 @@ function abrirMedicamento(id = '') {
   $('mNome').value = dados ? dados.nome : '';
   $('mDosagem').value = dados ? dados.dosagem || '' : '';
   preencherUnidadesMed(dados ? dados.unidadeDosagem || 'mg' : 'mg');
-  $('mManha').value = dados ? numero(dados.manha) : 0;
-  $('mNoite').value = dados ? numero(dados.noite) : 0;
+  $('mTotal').value = dados ? totalDoItem(dados) : 0;
 
   $('dlgMed').showModal();
 }
@@ -1376,8 +1369,7 @@ $('formMed').addEventListener('submit', evento => {
     nome: $('mNome').value.trim(),
     dosagem: $('mDosagem').value.trim(),
     unidadeDosagem: $('mUnidadeDosagem').value,
-    manha: numero($('mManha').value),
-    noite: numero($('mNoite').value)
+    total: numero($('mTotal').value)
   };
 
   if (!dadosMedicamento.nome) {
