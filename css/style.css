@@ -775,3 +775,96 @@ html[data-tema="escuro"] .aviso-caixa h2 {
     flex: 1 1 100%;
   }
 }
+
+/* ===== AJUSTE VISUAL: ESCOLHER MEDICAMENTOS ===== */
+#dlgEscolherMeds {
+  width: min(680px, calc(100% - 28px));
+  padding: 20px;
+}
+
+#dlgEscolherMeds h2 {
+  margin-bottom: 14px;
+  font-size: 1.35rem;
+}
+
+#dlgEscolherMeds label {
+  margin-top: 10px;
+  margin-bottom: 4px;
+}
+
+/* Busca e ordenação mais compactas */
+#buscaEscolherMed,
+#ordemEscolherMed {
+  min-height: 44px;
+}
+
+/* Lista compacta, em vez de itens muito espaçados */
+#listaEscolherMeds {
+  display: grid;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 10px 0 16px;
+  padding: 8px;
+  border: 1px solid var(--borda);
+  border-radius: 9px;
+  background: var(--fundo);
+}
+
+/* Cada medicamento aparece em uma linha com a caixa ao lado do nome */
+#listaEscolherMeds > label,
+#listaEscolherMeds > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  margin: 0;
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: var(--superficie);
+  font-size: 0.95rem;
+}
+
+#listaEscolherMeds > label:hover,
+#listaEscolherMeds > div:hover {
+  border-color: var(--borda);
+  background: var(--verde-claro);
+}
+
+/* Checkbox com tamanho adequado, sem ocupar a largura inteira */
+#listaEscolherMeds input[type="checkbox"] {
+  flex: 0 0 20px;
+  width: 20px;
+  min-height: 20px;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+}
+
+/* Cadastro de medicamento separado visualmente da lista */
+#dlgEscolherMeds h3 {
+  margin: 16px 0 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--borda);
+  font-size: 1.05rem;
+}
+
+#dlgEscolherMeds .janela-botoes {
+  gap: 8px;
+  margin-top: 14px;
+}
+
+@media (max-width: 600px) {
+  #dlgEscolherMeds {
+    padding: 16px;
+  }
+
+  #listaEscolherMeds {
+    max-height: 200px;
+  }
+
+  #dlgEscolherMeds .janela-botoes > * {
+    flex: 1 1 100%;
+  }
+}

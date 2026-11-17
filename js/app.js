@@ -14,7 +14,7 @@ function mostrarAviso(titulo, mensagem, aoFechar) {
   const botaoOk = document.getElementById('avisoOk');
 
   if (!dialogo || !tituloElemento || !textoElemento || !botaoOk ||
-      typeof dialogo.showModal !== 'function') {
+    typeof dialogo.showModal !== 'function') {
     alert(mensagem);
     if (typeof aoFechar === 'function') aoFechar();
     return;
@@ -555,7 +555,6 @@ function salvarDados() {
   atualizarTelas();
 }
 
-// ===== ATUALIZAR AS TELAS =====
 function atualizarTelas() {
   // Se os dados foram trocados (importação) e o usuário logado não existe mais, volta ao login
   if (usuarioAtual && !db.usuarios.some(usuario => usuario.id === usuarioAtual)) {
@@ -564,18 +563,22 @@ function atualizarTelas() {
 
   mostrarReceitas();
   mostrarMedicamentos();
+  mostrarEntregues();
   mostrarExcluidos();
 
-  $('nReceitas').textContent = db.receitas.length;
+  $('nReceitas').textContent =
+    db.receitas.filter(receita => !receita.dataEntrega).length;
+  $('nEntregues').textContent =
+    db.receitas.filter(receita => Boolean(receita.dataEntrega)).length;
   $('nMeds').textContent = db.medicamentos.length;
   $('nExcluidos').textContent = db.excluidos.length;
 }
 
 function mostrarReceitas() {
   const termo = $('busca').value.trim().toLocaleLowerCase('pt-BR');
-  const filtro = $('filtro').value;
 
   const receitas = db.receitas
+    .filter(receita => !receita.dataEntrega)
     .filter(receita => {
       const nomesMedicamentos = (receita.itens || [])
         .map(item => item.nome)
@@ -585,15 +588,11 @@ function mostrarReceitas() {
         receita.paciente,
         receita.cadastro,
         nomeDaPessoa(receita.retidaPor),
-        nomeDaPessoa(receita.entreguePor),
         nomesMedicamentos
       ].join(' ').toLocaleLowerCase('pt-BR');
 
       return texto.includes(termo);
     })
-    .filter(receita =>
-      filtro === 'todos' || statusDaReceita(receita) === filtro
-    )
     .sort((a, b) => {
       const campo = ordemReceitas.campo;
       let valorA;
@@ -605,9 +604,6 @@ function mostrarReceitas() {
       } else if (campo === 'retidaPor') {
         valorA = nomeDaPessoa(a.retidaPor).toLocaleLowerCase('pt-BR');
         valorB = nomeDaPessoa(b.retidaPor).toLocaleLowerCase('pt-BR');
-      } else if (campo === 'status') {
-        valorA = statusDaReceita(a);
-        valorB = statusDaReceita(b);
       } else if (campo === 'medicamentos') {
         valorA = (a.itens || []).length;
         valorB = (b.itens || []).length;
@@ -632,24 +628,18 @@ function mostrarReceitas() {
     });
 
   $('listaReceitas').innerHTML = receitas.map(receita => {
-    const status = statusDaReceita(receita);
     const quantidade = (receita.itens || []).length;
     const textoQuantidade =
       quantidade === 1 ? '1 medicamento' : `${quantidade} medicamentos`;
 
     const dias = diasDaReceita(receita);
     const passouDoLimite = dias > LIMITE_DIAS;
-    const aguardandoAtrasada = status === 'aguardando' && passouDoLimite;
-    const entregueDemorada = status === 'entregue' && passouDoLimite;
-
-    const classeLinha = aguardandoAtrasada ? 'atrasada' : '';
-    const classeTag = entregueDemorada ? 'demorada' : '';
     const avisoDias = passouDoLimite
       ? `<span class="alerta-dias">${dias} dias</span>`
       : '';
 
     return `
-      <tr class="${classeLinha}">
+      <tr class="${passouDoLimite ? 'atrasada' : ''}">
         <td data-label="Paciente">
           <button
             class="link-nome"
@@ -662,15 +652,11 @@ function mostrarReceitas() {
         <td data-label="Retida em">${formatarData(receita.dataRetida)}</td>
         <td data-label="Retida por">${escapar(nomeDaPessoa(receita.retidaPor))}</td>
         <td data-label="Status">
-          <span>
-            <span class="tag ${status} ${classeTag}">
-              ${status === 'entregue' ? 'Entregue' : 'Aguardando entrega'}
-            </span>
-            ${avisoDias}
-          </span>
+          <span class="tag aguardando">Aguardando entrega</span>
+          ${avisoDias}
         </td>
         <td data-label="Medicamentos">${textoQuantidade}</td>
-        <td data-label="Entregue em">${formatarData(receita.dataEntrega)}</td>
+        <td data-label="Entregue em">—</td>
       </tr>
     `;
   }).join('');
@@ -717,6 +703,48 @@ function mostrarMedicamentos() {
   $('vazioMeds').hidden = medicamentos.length > 0;
 }
 
+// ===== LISTA DE MEDICAMENTOS NA JANELA DE SELEÇÃO =====
+function mostrarMedsParaEscolha() {
+  const campoBusca = $('buscaEscolherMed');
+  const lista = $('listaEscolherMeds');
+
+  if (!campoBusca || !lista) return;
+
+  const termo = campoBusca.value.trim().toLocaleLowerCase('pt-BR');
+
+  const medicamentos = db.medicamentos
+    .filter(medicamento =>
+      `${medicamento.nome} ${textoDosagem(medicamento)}`
+        .toLocaleLowerCase('pt-BR')
+        .includes(termo)
+    )
+    .sort((a, b) =>
+      a.nome.localeCompare(b.nome, 'pt-BR')
+    );
+
+  if (medicamentos.length === 0) {
+    lista.innerHTML = '<p class="vazio">Nenhum medicamento encontrado.</p>';
+    return;
+  }
+
+  lista.innerHTML = medicamentos.map(medicamento => `
+    <label>
+      <input
+        type="checkbox"
+        value="${escapar(medicamento.id)}"
+        data-escolher-medicamento>
+      <span>
+        <strong>${escapar(medicamento.nome)}</strong>
+        ${medicamento.dosagem
+          ? ` — ${escapar(textoDosagem(medicamento))}`
+          : ''}
+      </span>
+    </label>
+  `).join('');
+}
+
+$('buscaEscolherMed').addEventListener('input', mostrarMedsParaEscolha);
+
 // ===== EXCLUÍDOS (SOMENTE CONSULTA) =====
 function mostrarExcluidos() {
   const lista = [...db.excluidos].sort((a, b) =>
@@ -741,6 +769,34 @@ function mostrarExcluidos() {
   `).join('');
 
   $('vazioExcluidos').hidden = lista.length > 0;
+}
+
+// ===== ENTREGUES (SOMENTE CONSULTA) =====
+function mostrarEntregues() {
+  const receitas = db.receitas
+    .filter(receita => Boolean(receita.dataEntrega))
+    .sort((a, b) =>
+      String(b.dataEntrega || '').localeCompare(String(a.dataEntrega || ''))
+    );
+
+  $('listaEntregues').innerHTML = receitas.map(receita => `
+    <tr>
+      <td data-label="Paciente">
+        <button
+          class="link-nome"
+          type="button"
+          data-consultar-entregue="${escapar(receita.id)}">
+          ${escapar(receita.paciente)}
+        </button>
+      </td>
+      <td data-label="Retida em">${formatarData(receita.dataRetida)}</td>
+      <td data-label="Retirada em">${formatarData(receita.dataEntrega)}</td>
+      <td data-label="Retida por">${escapar(nomeDaPessoa(receita.retidaPor))}</td>
+      <td data-label="Entregue por">${escapar(nomeDaPessoa(receita.entreguePor))}</td>
+    </tr>
+  `).join('');
+
+  $('vazioEntregues').hidden = receitas.length > 0;
 }
 
 // ===== CONSULTAR RECEITA (SOMENTE LEITURA) =====
@@ -815,6 +871,19 @@ $('listaExcluidos').addEventListener('click', evento => {
   abrirConsulta(receita, 'Receita excluída (somente consulta)');
 });
 
+$('listaEntregues').addEventListener('click', evento => {
+  const botao = evento.target.closest('[data-consultar-entregue]');
+  if (!botao) return;
+
+  const receita = db.receitas.find(
+    item => item.id === botao.dataset.consultarEntregue
+  );
+
+  if (!receita || !receita.dataEntrega) return;
+
+  abrirConsulta(receita, 'Receita entregue (somente consulta)');
+});
+
 $('btnFecharExcluida').addEventListener('click', () => {
   $('dlgExcluida').close();
 });
@@ -853,7 +922,7 @@ document.querySelectorAll('.aba').forEach(botao => {
       aba.classList.toggle('ativa', aba === botao);
     });
 
-    ['receitas', 'medicamentos', 'excluidos'].forEach(nome => {
+    ['receitas', 'medicamentos', 'entregues', 'excluidos'].forEach(nome => {
       $(`aba-${nome}`).hidden = nome !== botao.dataset.aba;
     });
   });
@@ -934,16 +1003,8 @@ function abrirReceita(id = '') {
   $('rDataEntrega').value = receita ? receita.dataEntrega || '' : '';
   $('rObs').value = receita ? receita.obs || '' : '';
 
-  $('rSelMed').innerHTML =
-    '<option value="">Escolha um medicamento do catálogo...</option>' +
-    db.medicamentos.map(medicamento => {
-      const dosagem = medicamento.dosagem ? ` - ${textoDosagem(medicamento)}` : '';
-      return `
-        <option value="${escapar(medicamento.id)}">
-          ${escapar(medicamento.nome)}${escapar(dosagem)}
-        </option>
-      `;
-    }).join('');
+   // A seleção de medicamentos é feita pela janela aberta no botão
+  // "Adicionar do catálogo".
 
   itensTemporarios = receita
     ? JSON.parse(JSON.stringify(receita.itens || []))
@@ -1036,27 +1097,176 @@ $('rItens').addEventListener('click', evento => {
   mostrarItensDaReceita();
 });
 
-$('btnAddMed').addEventListener('click', () => {
-  const medicamento = db.medicamentos.find(
-    item => item.id === $('rSelMed').value
-  );
+let medicamentosSelecionados = new Set();
 
-  if (!medicamento) {
-    mostrarAviso('Atenção', 'Escolha um medicamento do catálogo primeiro.');
+function mostrarMedicamentosNaSelecao() {
+  const termo = $('buscaEscolherMed').value
+    .trim()
+    .toLocaleLowerCase('pt-BR');
+
+  const ordem = $('ordemEscolherMed').value;
+
+  const medicamentos = db.medicamentos
+    .filter(medicamento =>
+      `${medicamento.nome} ${textoDosagem(medicamento)}`
+        .toLocaleLowerCase('pt-BR')
+        .includes(termo)
+    )
+    .sort((a, b) => {
+      const comparacao = a.nome.localeCompare(b.nome, 'pt-BR');
+      return ordem === 'desc' ? -comparacao : comparacao;
+    });
+
+  $('vazioEscolherMeds').hidden = medicamentos.length > 0;
+
+  if (medicamentos.length === 0) {
+    $('listaEscolherMeds').innerHTML = '';
     return;
   }
 
-  const copia = normalizarDosagem({ ...medicamento });
+  $('listaEscolherMeds').innerHTML = medicamentos.map(medicamento => `
+    <label>
+      <input
+        type="checkbox"
+        value="${escapar(medicamento.id)}"
+        ${medicamentosSelecionados.has(medicamento.id) ? 'checked' : ''}>
+      <strong>${escapar(medicamento.nome)}</strong>
+      — ${escapar(textoDosagem(medicamento))}
+    </label>
+  `).join('');
 
-  itensTemporarios.push({
-    nome: copia.nome,
-    dosagem: copia.dosagem || '',
-    unidadeDosagem: copia.unidadeDosagem || 'mg',
-    total: totalDoItem(copia)
+  $('listaEscolherMeds')
+    .querySelectorAll('input[type="checkbox"]')
+    .forEach(caixa => {
+      caixa.addEventListener('change', () => {
+        if (caixa.checked) {
+          medicamentosSelecionados.add(caixa.value);
+        } else {
+          medicamentosSelecionados.delete(caixa.value);
+        }
+      });
+    });
+}
+
+$('buscaEscolherMed').addEventListener(
+  'input',
+  mostrarMedicamentosNaSelecao
+);
+
+$('ordemEscolherMed').addEventListener(
+  'change',
+  mostrarMedicamentosNaSelecao
+);
+
+$('btnAddMed').addEventListener('click', () => {
+  medicamentosSelecionados.clear();
+  $('buscaEscolherMed').value = '';
+  $('ordemEscolherMed').value = 'asc';
+  mostrarMedicamentosNaSelecao();
+  $('dlgEscolherMeds').showModal();
+});
+
+$('btnCadastrarMedNaSelecao').addEventListener('click', () => {
+  const nome = $('novoMedReceitaNome').value.trim();
+  const dosagem = $('novoMedReceitaDosagem').value.trim();
+  const unidadeDosagem = $('novoMedReceitaUnidade').value;
+  const totalTexto = $('novoMedReceitaTotal').value;
+  const total = numero(totalTexto);
+
+  if (!nome) {
+    mostrarAviso(
+      'Atenção',
+      'Informe o nome do medicamento.',
+      () => $('novoMedReceitaNome').focus()
+    );
+    return;
+  }
+
+  if (!/[A-Za-zÀ-ÖØ-öø-ÿ]/.test(nome)) {
+    mostrarAviso(
+      'Atenção',
+      'O nome do medicamento deve conter letras. Não pode ser apenas números.',
+      () => $('novoMedReceitaNome').focus()
+    );
+    return;
+  }
+
+  if (dosagem && !DOSAGEM_VALIDA.test(dosagem)) {
+    mostrarAviso(
+      'Atenção',
+      'A dosagem deve conter apenas números. Exemplo: 10 ou 0,5.',
+      () => $('novoMedReceitaDosagem').focus()
+    );
+    return;
+  }
+
+  if (totalTexto === '' || total < 0) {
+    mostrarAviso(
+      'Atenção',
+      'Informe um Total/Dia igual ou maior que zero.',
+      () => $('novoMedReceitaTotal').focus()
+    );
+    return;
+  }
+
+  const medicamento = {
+    id: novoId(),
+    nome,
+    dosagem,
+    unidadeDosagem: dosagem ? unidadeDosagem : '',
+    total
+  };
+
+  db.medicamentos.push(medicamento);
+  medicamentosSelecionados.add(medicamento.id);
+
+  $('novoMedReceitaNome').value = '';
+  $('novoMedReceitaDosagem').value = '';
+  $('novoMedReceitaUnidade').value = 'mg';
+  $('novoMedReceitaTotal').value = '0';
+  $('buscaEscolherMed').value = '';
+
+  const cadastro = $('btnCadastrarMedNaSelecao').closest('details');
+  if (cadastro) cadastro.open = false;
+
+  mostrarMedicamentosNaSelecao();
+  salvarDados();
+});
+
+$('btnConfirmarMeds').addEventListener('click', () => {
+  const selecionados = db.medicamentos.filter(medicamento =>
+    medicamentosSelecionados.has(medicamento.id)
+  );
+
+  if (selecionados.length === 0) {
+    mostrarAviso(
+      'Atenção',
+      'Selecione pelo menos um medicamento para adicionar à receita.'
+    );
+    return;
+  }
+
+  selecionados.forEach(medicamento => {
+    const dados = normalizarDosagem({ ...medicamento });
+
+    itensTemporarios.push({
+      nome: dados.nome,
+      dosagem: dados.dosagem || '',
+      unidadeDosagem: dados.dosagem
+        ? (dados.unidadeDosagem || 'mg')
+        : '',
+      total: totalDoItem(dados)
+    });
   });
 
-  $('rSelMed').value = '';
+  medicamentosSelecionados.clear();
   mostrarItensDaReceita();
+  $('dlgEscolherMeds').close();
+});
+
+$('btnCancelarSelecaoMeds').addEventListener('click', () => {
+  medicamentosSelecionados.clear();
+  $('dlgEscolherMeds').close();
 });
 
 $('btnAddAvulso').addEventListener('click', () => {
@@ -1357,9 +1567,9 @@ $('btnNovaUnidade').addEventListener('click', () => {
   if (nova) preencherUnidadesMed(nova);
 });
 
-// Dosagem: aceita somente números, vírgula ou ponto
-$('mDosagem').addEventListener('input', () => {
-  $('mDosagem').value = $('mDosagem').value.replace(/[^0-9.,]/g, '');
+$('novoMedReceitaDosagem').addEventListener('input', () => {
+  $('novoMedReceitaDosagem').value =
+    $('novoMedReceitaDosagem').value.replace(/[^0-9.,]/g, '');
 });
 
 $('formMed').addEventListener('submit', evento => {

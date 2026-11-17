@@ -46,12 +46,18 @@
 
     <!-- ===== ABAS ===== -->
     <nav class="abas">
-      <button class="aba ativa" type="button" data-aba="receitas">Receitas <span class="contador"
-          id="nReceitas">0</span></button>
-      <button class="aba" type="button" data-aba="medicamentos">Medicamentos <span class="contador"
-          id="nMeds">0</span></button>
-      <button class="aba" type="button" data-aba="excluidos">Excluídos <span class="contador"
-          id="nExcluidos">0</span></button>
+      <button class="aba ativa" type="button" data-aba="receitas">
+        Receitas <span class="contador" id="nReceitas">0</span>
+      </button>
+      <button class="aba" type="button" data-aba="medicamentos">
+        Medicamentos <span class="contador" id="nMeds">0</span>
+      </button>
+      <button class="aba" type="button" data-aba="entregues">
+        Entregues <span class="contador" id="nEntregues">0</span>
+      </button>
+      <button class="aba" type="button" data-aba="excluidos">
+        Excluídos <span class="contador" id="nExcluidos">0</span>
+      </button>
     </nav>
 
     <!-- ===== ABA RECEITAS ===== -->
@@ -102,6 +108,26 @@
           <tbody id="listaMeds"></tbody>
         </table>
         <div id="vazioMeds" class="vazio">Nenhum medicamento cadastrado.</div>
+      </div>
+    </section>
+
+    <!-- ===== ABA ENTREGUES (SOMENTE CONSULTA) ===== -->
+    <section id="aba-entregues" hidden>
+      <p class="aviso-aba">Somente consulta. As receitas entregues não podem ser alteradas ou excluídas.</p>
+      <div class="tabela-box">
+        <table>
+          <thead>
+            <tr>
+              <th>Paciente</th>
+              <th>Retida em</th>
+              <th>Retirada em</th>
+              <th>Retida por</th>
+              <th>Entregue por</th>
+            </tr>
+          </thead>
+          <tbody id="listaEntregues"></tbody>
+        </table>
+        <div id="vazioEntregues" class="vazio">Nenhuma receita entregue.</div>
       </div>
     </section>
 
@@ -229,7 +255,6 @@
       <h3>Medicamentos da receita (<span id="rContagem">0</span>) *</h3>
 
       <div class="linha-add">
-        <select id="rSelMed"></select>
         <button class="btn" type="button" id="btnAddMed">Adicionar do catálogo</button>
         <button class="btn" type="button" id="btnAddAvulso">Adicionar avulso</button>
       </div>
@@ -245,6 +270,62 @@
         <button class="btn perigo" type="button" id="btnExcluirReceita" hidden>Excluir receita</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- ===== JANELA: ESCOLHER MEDICAMENTOS PARA A RECEITA ===== -->
+  <dialog id="dlgEscolherMeds" class="janela larga">
+    <h2>Escolher medicamentos</h2>
+
+    <label for="buscaEscolherMed">Buscar medicamento pelo nome</label>
+    <input type="search" id="buscaEscolherMed" autocomplete="off" placeholder="Digite o nome do medicamento...">
+
+    <div class="linha-add">
+      <label for="ordemEscolherMed">Ordenar nomes</label>
+      <select id="ordemEscolherMed">
+        <option value="asc">A a Z</option>
+        <option value="desc">Z a A</option>
+      </select>
+    </div>
+
+    <div id="listaEscolherMeds" class="lista-escolher-meds"></div>
+
+    <p id="vazioEscolherMeds" class="sem-itens" hidden>
+      Nenhum medicamento encontrado.
+    </p>
+
+    <details class="cadastro-med-selecao">
+      <summary>Cadastrar medicamento novo</summary>
+
+      <label for="novoMedReceitaNome">Nome do medicamento *</label>
+      <input id="novoMedReceitaNome" autocomplete="off">
+
+      <label for="novoMedReceitaDosagem">Dosagem</label>
+      <div class="dosagem-campo">
+        <input id="novoMedReceitaDosagem" type="text" inputmode="decimal" placeholder="Ex.: 10">
+        <select id="novoMedReceitaUnidade" aria-label="Unidade da dosagem">
+          <option value="mg">mg</option>
+          <option value="ml">ml</option>
+          <option value="cp">cp</option>
+          <option value="mcg">mcg</option>
+        </select>
+      </div>
+
+      <label for="novoMedReceitaTotal">Total/Dia</label>
+      <input type="number" id="novoMedReceitaTotal" step="0.5" min="0" value="0">
+
+      <button class="btn" type="button" id="btnCadastrarMedNaSelecao">
+        Cadastrar medicamento
+      </button>
+    </details>
+
+    <div class="janela-botoes">
+      <button class="btn destaque" type="button" id="btnConfirmarMeds">
+        Adicionar selecionados à receita
+      </button>
+      <button class="btn" type="button" id="btnCancelarSelecaoMeds">
+        Voltar à receita
+      </button>
+    </div>
   </dialog>
 
   <!-- ===== JANELA: MEDICAMENTO ===== -->
