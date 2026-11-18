@@ -64,12 +64,9 @@
     <section id="aba-receitas">
       <div class="barra-filtros">
         <input type="search" id="busca" placeholder="Buscar paciente, cadastro, medicamento ou usuário...">
-        <select id="filtro">
-          <option value="todos">Todos os status</option>
-          <option value="aguardando">Aguardando entrega</option>
-          <option value="entregue">Entregues</option>
-        </select>
       </div>
+
+      <div id="resultadosBuscaGeral" class="tabela-box" hidden></div>
 
       <div class="tabela-box">
         <table>
@@ -77,6 +74,7 @@
             <tr>
               <th><button type="button" class="ordenar" data-ordenar="paciente">Paciente</button></th>
               <th><button type="button" class="ordenar" data-ordenar="dataRetida">Retida em</button></th>
+              <th>Retirar a partir de</th>
               <th><button type="button" class="ordenar" data-ordenar="retidaPor">Retida por</button></th>
               <th><button type="button" class="ordenar" data-ordenar="status">Status</button></th>
               <th><button type="button" class="ordenar" data-ordenar="medicamentos">Medicamentos</button></th>
@@ -252,6 +250,11 @@
         </div>
       </div>
 
+      <div class="campo-data-retirar">
+        <label for="rDataRetirar">Retirar a partir de</label>
+        <input type="date" id="rDataRetirar" readonly>
+      </div>
+
       <h3>Medicamentos da receita (<span id="rContagem">0</span>) *</h3>
 
       <div class="linha-add">
@@ -363,6 +366,7 @@
     <h2>Receita excluída (somente consulta)</h2>
     <div id="detalheExcluida"></div>
     <div class="janela-botoes">
+      <button class="btn" type="button" id="btnEditarConsulta" hidden>Editar</button>
       <button class="btn destaque" type="button" id="btnFecharExcluida">Fechar</button>
     </div>
   </dialog>

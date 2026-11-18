@@ -632,11 +632,27 @@ function mostrarReceitas() {
     const textoQuantidade =
       quantidade === 1 ? '1 medicamento' : `${quantidade} medicamentos`;
 
+    const dataRetirar = receita.dataRetida
+      ? (() => {
+        const [ano, mes, dia] = receita.dataRetida.split('-').map(Number);
+        const data = new Date(ano, mes - 1, dia);
+        data.setDate(data.getDate() + 15);
+
+        const anoFinal = data.getFullYear();
+        const mesFinal = String(data.getMonth() + 1).padStart(2, '0');
+        const diaFinal = String(data.getDate()).padStart(2, '0');
+
+        return `${anoFinal}-${mesFinal}-${diaFinal}`;
+      })()
+      : '';
+
     const dias = diasDaReceita(receita);
     const passouDoLimite = dias > LIMITE_DIAS;
-    const avisoDias = passouDoLimite
-      ? `<span class="alerta-dias">${dias} dias</span>`
-      : '';
+    const avisoDias = dias === LIMITE_DIAS - 1
+      ? '<span class="alerta-dias">Falta 1 dia para completar 30 dias</span>'
+      : passouDoLimite
+        ? `<span class="alerta-dias">${dias} dias</span>`
+        : '';
 
     return `
       <tr class="${passouDoLimite ? 'atrasada' : ''}">
@@ -649,8 +665,9 @@ function mostrarReceitas() {
             ${escapar(receita.paciente)}
           </button>
         </td>
-        <td data-label="Retida em">${formatarData(receita.dataRetida)}</td>
-        <td data-label="Retida por">${escapar(nomeDaPessoa(receita.retidaPor))}</td>
+       <td data-label="Retida em">${formatarData(receita.dataRetida)}</td>
+<td data-label="Retirar a partir de">${formatarData(dataRetirar) || '—'}</td>
+<td data-label="Retida por">${escapar(nomeDaPessoa(receita.retidaPor))}</td>
         <td data-label="Status">
           <span class="tag aguardando">Aguardando entrega</span>
           ${avisoDias}
@@ -736,8 +753,8 @@ function mostrarMedsParaEscolha() {
       <span>
         <strong>${escapar(medicamento.nome)}</strong>
         ${medicamento.dosagem
-          ? ` — ${escapar(textoDosagem(medicamento))}`
-          : ''}
+      ? ` — ${escapar(textoDosagem(medicamento))}`
+      : ''}
       </span>
     </label>
   `).join('');
@@ -771,6 +788,48 @@ function mostrarExcluidos() {
   $('vazioExcluidos').hidden = lista.length > 0;
 }
 
+function mostrarResultadosBuscaGeral() {
+  const termo = $('busca').value.trim().toLocaleLowerCase('pt-BR');
+  const resultados = $('resultadosBuscaGeral');
+
+  if (!termo) {
+    resultados.hidden = true;
+    resultados.innerHTML = '';
+    return;
+  }
+
+  const encontrados = [
+    ...db.receitas.map(receita => ({
+      receita,
+      categoria: receita.dataEntrega ? 'Entregues' : 'Receitas'
+    })),
+    ...db.excluidos.map(receita => ({
+      receita,
+      categoria: 'Excluídos'
+    }))
+  ].filter(item =>
+    (item.receita.paciente || '')
+      .toLocaleLowerCase('pt-BR')
+      .includes(termo)
+  );
+
+  resultados.hidden = false;
+
+  resultados.innerHTML = encontrados.length
+    ? `
+      <strong>Pacientes encontrados:</strong>
+      <ul>
+        ${encontrados.map(item => `
+          <li>
+            ${escapar(item.receita.paciente)}
+            — <strong>${item.categoria}</strong>
+          </li>
+        `).join('')}
+      </ul>
+    `
+    : '<p>Nenhum paciente encontrado nas abas Receitas, Entregues ou Excluídos.</p>';
+}
+
 // ===== ENTREGUES (SOMENTE CONSULTA) =====
 function mostrarEntregues() {
   const receitas = db.receitas
@@ -779,22 +838,33 @@ function mostrarEntregues() {
       String(b.dataEntrega || '').localeCompare(String(a.dataEntrega || ''))
     );
 
-  $('listaEntregues').innerHTML = receitas.map(receita => `
-    <tr>
-      <td data-label="Paciente">
-        <button
-          class="link-nome"
-          type="button"
-          data-consultar-entregue="${escapar(receita.id)}">
-          ${escapar(receita.paciente)}
-        </button>
-      </td>
-      <td data-label="Retida em">${formatarData(receita.dataRetida)}</td>
-      <td data-label="Retirada em">${formatarData(receita.dataEntrega)}</td>
-      <td data-label="Retida por">${escapar(nomeDaPessoa(receita.retidaPor))}</td>
-      <td data-label="Entregue por">${escapar(nomeDaPessoa(receita.entreguePor))}</td>
-    </tr>
-  `).join('');
+  $('listaEntregues').innerHTML = receitas.map(receita => {
+    const dias = diasDaReceita(receita);
+    const avisoAntecipado =
+      dias === LIMITE_DIAS - 1
+        ? '<span class="alerta-dias">Falta 1 dia para completar 30 dias</span>'
+        : '';
+
+    return `
+      <tr class="${dias >= LIMITE_DIAS - 1 ? 'atrasada' : ''}">
+        <td data-label="Paciente">
+          <button
+            class="link-nome"
+            type="button"
+            data-consultar-entregue="${escapar(receita.id)}">
+            ${escapar(receita.paciente)}
+          </button>
+        </td>
+        <td data-label="Retida em">${formatarData(receita.dataRetida)}</td>
+        <td data-label="Retirada em">
+          ${formatarData(receita.dataEntrega)}
+          ${avisoAntecipado}
+        </td>
+        <td data-label="Retida por">${escapar(nomeDaPessoa(receita.retidaPor))}</td>
+        <td data-label="Entregue por">${escapar(nomeDaPessoa(receita.entreguePor))}</td>
+      </tr>
+    `;
+  }).join('');
 
   $('vazioEntregues').hidden = receitas.length > 0;
 }
@@ -824,10 +894,25 @@ function abrirConsulta(receita, titulo) {
     ? `<p><strong>Última alteração:</strong> ${escapar(nomeDaPessoa(receita.alteradaPor))} em ${formatarDataHora(receita.alteradaEm)}</p>`
     : '';
 
+  let dataRetirar = '';
+
+  if (receita.dataRetida) {
+    const [ano, mes, dia] = receita.dataRetida.split('-').map(Number);
+    const dataCalculada = new Date(ano, mes - 1, dia);
+    dataCalculada.setDate(dataCalculada.getDate() + 15);
+
+    const anoFinal = dataCalculada.getFullYear();
+    const mesFinal = String(dataCalculada.getMonth() + 1).padStart(2, '0');
+    const diaFinal = String(dataCalculada.getDate()).padStart(2, '0');
+
+    dataRetirar = `${anoFinal}-${mesFinal}-${diaFinal}`;
+  }
+
   $('detalheExcluida').innerHTML = `
     <p><strong>Paciente:</strong> ${escapar(receita.paciente) || '—'}</p>
     <p><strong>${rotuloIdentificacao(receita)}:</strong> ${escapar(receita.cadastro) || '—'}</p>
     <p><strong>Retida em:</strong> ${formatarData(receita.dataRetida)}</p>
+    <p><strong>Retirar a partir de:</strong> ${formatarData(dataRetirar) || '—'}</p>
     <p><strong>Retida por:</strong> ${escapar(nomeDaPessoa(receita.retidaPor))}</p>
     <p><strong>Retirada em:</strong> ${formatarData(receita.dataEntrega)}</p>
     <p><strong>Entregue por:</strong> ${escapar(nomeDaPessoa(receita.entreguePor))}</p>
@@ -854,6 +939,10 @@ function abrirConsulta(receita, titulo) {
 
   const tituloJanela = $('dlgExcluida').querySelector('h2');
   if (tituloJanela) tituloJanela.textContent = titulo;
+
+  const botaoEditar = $('btnEditarConsulta');
+  botaoEditar.hidden = Boolean(receita.dataEntrega || receita.excluidaPor);
+  botaoEditar.dataset.receitaId = receita.id;
 
   $('dlgExcluida').showModal();
 }
@@ -882,6 +971,12 @@ $('listaEntregues').addEventListener('click', evento => {
   if (!receita || !receita.dataEntrega) return;
 
   abrirConsulta(receita, 'Receita entregue (somente consulta)');
+});
+
+$('btnEditarConsulta').addEventListener('click', () => {
+  const id = $('btnEditarConsulta').dataset.receitaId;
+  $('dlgExcluida').close();
+  abrirReceita(id);
 });
 
 $('btnFecharExcluida').addEventListener('click', () => {
@@ -928,8 +1023,10 @@ document.querySelectorAll('.aba').forEach(botao => {
   });
 });
 
-$('busca').addEventListener('input', mostrarReceitas);
-$('filtro').addEventListener('change', mostrarReceitas);
+$('busca').addEventListener('input', () => {
+  mostrarReceitas();
+  mostrarResultadosBuscaGeral();
+});
 $('buscaMed').addEventListener('input', mostrarMedicamentos);
 
 // ===== ABRIR JANELAS E EXECUTAR AÇÕES =====
@@ -940,9 +1037,15 @@ document.addEventListener('click', evento => {
   const id = botao.dataset.id;
 
   switch (botao.dataset.acao) {
-    case 'abrir-receita':
-      abrirReceita(id);
+    case 'abrir-receita': {
+      const receita = db.receitas.find(item => item.id === id);
+
+      if (receita) {
+        abrirConsulta(receita, 'Receita (somente consulta)');
+      }
+
       break;
+    }
 
     case 'editar-medicamento':
       abrirMedicamento(id);
@@ -1000,10 +1103,27 @@ function abrirReceita(id = '') {
   $('rCadastro').value = receita ? receita.cadastro || '' : '';
 
   $('rDataRetida').value = receita ? receita.dataRetida || '' : dataDeHoje();
+
+  const dataBaseRetirada = $('rDataRetida').value;
+
+  if (dataBaseRetirada) {
+    const [ano, mes, dia] = dataBaseRetirada.split('-').map(Number);
+    const dataRetirada = new Date(ano, mes - 1, dia);
+    dataRetirada.setDate(dataRetirada.getDate() + 15);
+
+    const anoRetirada = dataRetirada.getFullYear();
+    const mesRetirada = String(dataRetirada.getMonth() + 1).padStart(2, '0');
+    const diaRetirada = String(dataRetirada.getDate()).padStart(2, '0');
+
+    $('rDataRetirar').value = `${anoRetirada}-${mesRetirada}-${diaRetirada}`;
+  } else {
+    $('rDataRetirar').value = '';
+  }
+
   $('rDataEntrega').value = receita ? receita.dataEntrega || '' : '';
   $('rObs').value = receita ? receita.obs || '' : '';
 
-   // A seleção de medicamentos é feita pela janela aberta no botão
+  // A seleção de medicamentos é feita pela janela aberta no botão
   // "Adicionar do catálogo".
 
   itensTemporarios = receita
@@ -1475,6 +1595,7 @@ $('formReceita').addEventListener('submit', evento => {
     tipoCadastro: $('rTipoCadastro').value,
     cadastro: $('rCadastro').value.trim(),
     dataRetida: $('rDataRetida').value,
+    dataRetirar: $('rDataRetirar').value,
     dataEntrega: $('rDataEntrega').value,
     itens,
     obs: $('rObs').value.trim()
@@ -1733,3 +1854,22 @@ function iniciarAplicativo() {
 }
 
 iniciarAplicativo();
+
+$('rDataRetida').addEventListener('input', () => {
+  const dataBase = $('rDataRetida').value;
+
+  if (!dataBase) {
+    $('rDataRetirar').value = '';
+    return;
+  }
+
+  const [ano, mes, dia] = dataBase.split('-').map(Number);
+  const dataRetirada = new Date(ano, mes - 1, dia);
+  dataRetirada.setDate(dataRetirada.getDate() + 15);
+
+  const anoRetirada = dataRetirada.getFullYear();
+  const mesRetirada = String(dataRetirada.getMonth() + 1).padStart(2, '0');
+  const diaRetirada = String(dataRetirada.getDate()).padStart(2, '0');
+
+  $('rDataRetirar').value = `${anoRetirada}-${mesRetirada}-${diaRetirada}`;
+});

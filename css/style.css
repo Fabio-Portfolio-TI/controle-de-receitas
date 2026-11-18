@@ -868,3 +868,13 @@ html[data-tema="escuro"] .aviso-caixa h2 {
     flex: 1 1 100%;
   }
 }
+
+.campo-data-retirar label,
+.campo-data-retirar input {
+  color: #8a4b08;
+}
+
+.campo-data-retirar input {
+  border-color: #d99a3d;
+  background-color: #fff4df;
+}
