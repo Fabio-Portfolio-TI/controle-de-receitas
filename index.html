@@ -17,6 +17,7 @@
       <div class="topo-acoes">
         <span class="usuario" id="usuarioAtual"></span>
         <button class="btn" type="button" id="btnSair">Sair / Trocar usuário</button>
+        <button class="btn" type="button" id="btnAlterarSenha">Alterar minha senha</button>
         <button class="btn" type="button" id="btnTema">Modo escuro</button>
         <button class="btn destaque" type="button" id="btnNovaReceita">+ Nova receita</button>
         <button class="btn" type="button" id="btnImprimirReceitas">Imprimir receitas pendentes</button>
@@ -64,7 +65,7 @@
     <!-- ===== ABA RECEITAS ===== -->
     <section id="aba-receitas">
       <div class="barra-filtros">
-        <input type="search" id="busca" placeholder="Buscar paciente, cadastro, medicamento ou usuário...">
+        <input type="search" id="busca" placeholder="Buscar por nome do paciente...">
       </div>
 
       <div id="resultadosBuscaGeral" class="tabela-box" hidden></div>
@@ -159,8 +160,7 @@
   <!-- ===== JANELA DE LOGIN (aparece sempre) ===== -->
   <dialog id="dlgLogin" class="janela">
     <form id="formLogin" novalidate>
-      <h2>Entrar no sistema</h2>
-
+      <h1 class="login-titulo">Controle de Receitas</h1>
       <label for="lUsuario">Nome do usuário</label>
       <select id="lUsuario"></select>
 
@@ -174,6 +174,21 @@
         <button class="btn" type="button" id="btnNovoUsuario">Cadastrar novo usuário</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- ===== JANELA: CONFIRMAR SAÍDA OU TROCA DE USUÁRIO ===== -->
+  <dialog id="dlgConfirmarSaida" class="janela">
+    <h2>Sair ou trocar de usuário?</h2>
+    <p>Você pode voltar à tela de login ou continuar usando o usuário atual.</p>
+
+    <div class="janela-botoes">
+      <button class="btn" type="button" id="btnCancelarSaida">
+        Continuar conectado
+      </button>
+      <button class="btn destaque" type="button" id="btnConfirmarSaida">
+        Voltar ao login
+      </button>
+    </div>
   </dialog>
 
   <!-- ===== JANELA: CADASTRAR NOVO USUÁRIO ===== -->
@@ -193,6 +208,30 @@
       <div class="janela-botoes">
         <button class="btn destaque" type="submit">Cadastrar</button>
         <button class="btn" type="button" id="btnCancelarNovoUsuario">Voltar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===== JANELA: ALTERAR MINHA SENHA ===== -->
+  <dialog id="dlgAlterarSenha" class="janela">
+    <form id="formAlterarSenha" novalidate>
+      <h2>Alterar minha senha</h2>
+
+      <label for="asSenhaAtual">Senha atual *</label>
+      <input type="password" id="asSenhaAtual" inputmode="numeric" maxlength="4" autocomplete="current-password"
+        placeholder="••••">
+
+      <label for="asNovaSenha">Nova senha de 4 números *</label>
+      <input type="password" id="asNovaSenha" inputmode="numeric" maxlength="4" autocomplete="new-password"
+        placeholder="••••">
+
+      <label for="asNovaSenha2">Repita a nova senha *</label>
+      <input type="password" id="asNovaSenha2" inputmode="numeric" maxlength="4" autocomplete="new-password"
+        placeholder="••••">
+
+      <div class="janela-botoes">
+        <button class="btn destaque" type="submit">Salvar nova senha</button>
+        <button class="btn" type="button" id="btnCancelarAlterarSenha">Cancelar</button>
       </div>
     </form>
   </dialog>

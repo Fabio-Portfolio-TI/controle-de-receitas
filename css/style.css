@@ -99,8 +99,28 @@ label.btn {
   gap: 10px;
 }
 
+/* Centraliza o título e os grupos de controles do cabeçalho */
 .topo-linha {
-  justify-content: space-between;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.topo-acoes,
+.topo-arquivos {
+  justify-content: center;
+}
+
+.topo-arquivos {
+  margin-top: 16px;
+}
+
+/* Centraliza a mensagem de status dos arquivos */
+.status-arquivo {
+  margin: 10px 0 0;
+  color: var(--texto-suave);
+  font-size: 1rem;
+  text-align: center;
 }
 
 .topo h1 {
@@ -111,16 +131,6 @@ label.btn {
 
 .usuario {
   font-weight: 700;
-}
-
-.topo-arquivos {
-  margin-top: 16px;
-}
-
-.status-arquivo {
-  margin: 10px 0 0;
-  color: var(--texto-suave);
-  font-size: 1rem;
 }
 
 .conteudo {
@@ -224,10 +234,11 @@ html[data-tema="escuro"] .btn.destaque {
   border-left-color: #f5b301;
 }
 
-/* ===== ABAS ===== */
+/* Centraliza as abas da página inicial */
 .abas {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
   margin-bottom: 18px;
   border-bottom: 1px solid var(--borda);
@@ -452,6 +463,11 @@ tr.atrasada:hover {
   color: var(--texto);
   box-shadow: var(--sombra);
   font-size: 1.05rem;
+}
+
+#dlgLogin::backdrop {
+  background: rgba(25, 38, 55, 0.72);
+  backdrop-filter: blur(3px);
 }
 
 .janela::backdrop {
@@ -877,4 +893,112 @@ html[data-tema="escuro"] .aviso-caixa h2 {
 .campo-data-retirar input {
   border-color: #d99a3d;
   background-color: #fff4df;
+}
+
+
+/* Escurece e desfoca levemente o fundo atrás da janela de login */
+#dlgLogin {
+  width: min(420px, calc(100% - 32px));
+  padding: 30px;
+  border: 1px solid #287080;
+  border-radius: 16px;
+  background: #10313d;
+  color: #e8f4f6;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
+}
+
+#dlgLogin form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#dlgLogin .login-titulo {
+  margin: 0 0 8px;
+  color: #e8f4f6;
+  text-align: center;
+}
+
+#dlgLogin label {
+  margin: 0;
+  text-align: left;
+}
+
+#dlgLogin select,
+#dlgLogin input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#dlgLogin .janela-botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+#dlgLogin::backdrop {
+  background: rgba(8, 18, 28, 0.82);
+  backdrop-filter: blur(5px);
+}
+
+/* Centraliza o conteúdo da janela de login */
+#dlgLogin form {
+  align-items: center;
+}
+
+#dlgLogin .login-titulo {
+  text-align: center;
+}
+
+#dlgLogin label {
+  width: 100%;
+  text-align: center;
+}
+
+#dlgLogin select,
+#dlgLogin input {
+  width: 100%;
+}
+
+#dlgLogin .janela-botoes {
+  justify-content: center;
+}
+
+/* Centraliza o texto exibido no campo de seleção do usuário */
+#lUsuario {
+  text-align: center;
+  text-align-last: center;
+}
+
+/* Centraliza o conteúdo da janela de alteração de senha */
+#dlgAlterarSenha {
+  text-align: center;
+}
+
+#dlgAlterarSenha label {
+  display: block;
+  text-align: center;
+}
+
+#dlgAlterarSenha input {
+  text-align: center;
+}
+
+#dlgAlterarSenha .janela-botoes {
+  justify-content: center;
+}
+
+/* Centraliza o conteúdo da janela de confirmação de saída */
+#dlgConfirmarSaida {
+  text-align: center;
+}
+
+#dlgConfirmarSaida h2,
+#dlgConfirmarSaida p {
+  text-align: center;
+}
+
+#dlgConfirmarSaida .janela-botoes {
+  justify-content: center;
 }

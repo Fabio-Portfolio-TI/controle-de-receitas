@@ -415,6 +415,47 @@ function entrar(usuario) {
   salvarDados();
 }
 
+$('formAlterarSenha').addEventListener('submit', async evento => {
+  evento.preventDefault();
+
+  const senhaAtual = $('asSenhaAtual').value;
+  const novaSenha = $('asNovaSenha').value;
+  const confirmarSenha = $('asNovaSenha2').value;
+
+  const usuario = db.usuarios.find(u => u.id === usuarioAtual);
+
+  if (!usuario) {
+    mostrarAviso('Atenção', 'Não foi possível identificar o usuário conectado.');
+    return;
+  }
+
+  if (!SENHA_4_NUMEROS.test(senhaAtual)) {
+    mostrarAviso('Atenção', 'Informe sua senha atual de 4 números.', () => $('asSenhaAtual').focus());
+    return;
+  }
+
+  if (!await senhaConfere(usuario, senhaAtual)) {
+    mostrarAviso('Atenção', 'A senha atual está incorreta.', () => $('asSenhaAtual').focus());
+    return;
+  }
+
+  if (!SENHA_4_NUMEROS.test(novaSenha)) {
+    mostrarAviso('Atenção', 'A nova senha deve ter exatamente 4 números.', () => $('asNovaSenha').focus());
+    return;
+  }
+
+  if (novaSenha !== confirmarSenha) {
+    mostrarAviso('Atenção', 'As duas novas senhas não são iguais.', () => $('asNovaSenha2').focus());
+    return;
+  }
+
+  usuario.senhaHash = await criarHashSenha(usuario.id, novaSenha);
+  salvarDados();
+
+  $('dlgAlterarSenha').close();
+  mostrarAviso('Sucesso', 'Sua senha foi alterada.');
+});
+
 $('formLogin').addEventListener('submit', async evento => {
   evento.preventDefault();
 
@@ -458,7 +499,19 @@ $('lSenha').addEventListener('input', () => {
   $('lSenha').value = $('lSenha').value.replace(/\D/g, '').slice(0, 4);
 });
 
-$('btnSair').addEventListener('click', mostrarLogin);
+// O botão de sair abre a confirmação; as opções permitem voltar ao login ou continuar conectado.
+$('btnSair').addEventListener('click', () => {
+  $('dlgConfirmarSaida').showModal();
+});
+
+$('btnCancelarSaida').addEventListener('click', () => {
+  $('dlgConfirmarSaida').close();
+});
+
+$('btnConfirmarSaida').addEventListener('click', () => {
+  $('dlgConfirmarSaida').close();
+  mostrarLogin();
+});
 
 // ===== CADASTRAR NOVO USUÁRIO =====
 $('btnNovoUsuario').addEventListener('click', () => {
@@ -470,6 +523,18 @@ $('btnNovoUsuario').addEventListener('click', () => {
 
 $('btnCancelarNovoUsuario').addEventListener('click', () => {
   $('dlgNovoUsuario').close();
+});
+
+$('btnAlterarSenha').addEventListener('click', () => {
+  $('asSenhaAtual').value = '';
+  $('asNovaSenha').value = '';
+  $('asNovaSenha2').value = '';
+  $('dlgAlterarSenha').showModal();
+  $('asSenhaAtual').focus();
+});
+
+$('btnCancelarAlterarSenha').addEventListener('click', () => {
+  $('dlgAlterarSenha').close();
 });
 
 ['nuSenha', 'nuSenha2', 'pSenha'].forEach(campo => {
@@ -579,20 +644,11 @@ function mostrarReceitas() {
 
   const receitas = db.receitas
     .filter(receita => !receita.dataEntrega)
-    .filter(receita => {
-      const nomesMedicamentos = (receita.itens || [])
-        .map(item => item.nome)
-        .join(' ');
-
-      const texto = [
-        receita.paciente,
-        receita.cadastro,
-        nomeDaPessoa(receita.retidaPor),
-        nomesMedicamentos
-      ].join(' ').toLocaleLowerCase('pt-BR');
-
-      return texto.includes(termo);
-    })
+    .filter(receita =>
+      (receita.paciente || '')
+        .toLocaleLowerCase('pt-BR')
+        .includes(termo)
+    )
     .sort((a, b) => {
       const campo = ordemReceitas.campo;
       let valorA;
@@ -821,8 +877,14 @@ function mostrarResultadosBuscaGeral() {
       <ul>
         ${encontrados.map(item => `
           <li>
-            ${escapar(item.receita.paciente)}
-            — <strong>${item.categoria}</strong>
+            <button
+              type="button"
+              data-acao="abrir-receita"
+              data-id="${escapar(item.receita.id)}"
+            >
+              ${escapar(item.receita.paciente)}
+              — <strong>${item.categoria}</strong>
+            </button>
           </li>
         `).join('')}
       </ul>
@@ -1023,10 +1085,22 @@ document.querySelectorAll('.aba').forEach(botao => {
   });
 });
 
+let avisoBuscaMostrado = false;
+
+// ===== POUP-UP DO CAMPO SOMENTE NOME DO PACIENTE =====
+
+$('busca').addEventListener('focus', () => {
+  if (!avisoBuscaMostrado) {
+    alert('A busca localiza pacientes somente pelo nome e mostra em qual aba estão.');
+    avisoBuscaMostrado = true;
+  }
+});
+
 $('busca').addEventListener('input', () => {
   mostrarReceitas();
   mostrarResultadosBuscaGeral();
 });
+
 $('buscaMed').addEventListener('input', mostrarMedicamentos);
 
 // ===== ABRIR JANELAS E EXECUTAR AÇÕES =====
@@ -1038,9 +1112,23 @@ document.addEventListener('click', evento => {
 
   switch (botao.dataset.acao) {
     case 'abrir-receita': {
-      const receita = db.receitas.find(item => item.id === id);
+      const receita =
+        db.receitas.find(item => item.id === id) ||
+        db.excluidos.find(item => item.id === id);
 
       if (receita) {
+        const aba = db.excluidos.some(item => item.id === id)
+          ? 'excluidos'
+          : receita.dataEntrega
+            ? 'entregues'
+            : 'receitas';
+
+        const botaoAba = document.querySelector(`.aba[data-aba="${aba}"]`);
+
+        if (botaoAba) {
+          botaoAba.click();
+        }
+
         abrirConsulta(receita, 'Receita (somente consulta)');
       }
 
