@@ -1099,11 +1099,19 @@ function abrirReceita(id = '') {
   // Tipo de identificação (receitas antigas ficam como "cadastro")
   $('rTipoCadastro').value =
     receita && receita.tipoCadastro === 'nascimento' ? 'nascimento' : 'cadastro';
+
   aplicarTipoCadastro(false);
   $('rCadastro').value = receita ? receita.cadastro || '' : '';
 
-  $('rDataRetida').value = receita ? receita.dataRetida || '' : dataDeHoje();
+  // Receita existente mantém a data salva; receita nova recebe a data de hoje.
+  $('rDataRetida').value = receita
+    ? receita.dataRetida || dataDeHoje()
+    : dataDeHoje();
 
+  // A data retida não pode ser alterada.
+  $('rDataRetida').disabled = true;
+
+  // Calcula "Retirar a partir de" para 15 dias depois da retenção.
   const dataBaseRetirada = $('rDataRetida').value;
 
   if (dataBaseRetirada) {
@@ -1115,17 +1123,20 @@ function abrirReceita(id = '') {
     const mesRetirada = String(dataRetirada.getMonth() + 1).padStart(2, '0');
     const diaRetirada = String(dataRetirada.getDate()).padStart(2, '0');
 
-    $('rDataRetirar').value = `${anoRetirada}-${mesRetirada}-${diaRetirada}`;
+    $('rDataRetirar').value =
+      `${anoRetirada}-${mesRetirada}-${diaRetirada}`;
   } else {
     $('rDataRetirar').value = '';
   }
+
+  // A data de retirada também é automática e não pode ser alterada.
+  $('rDataRetirar').disabled = true;
 
   $('rDataEntrega').value = receita ? receita.dataEntrega || '' : '';
   $('rObs').value = receita ? receita.obs || '' : '';
 
   // A seleção de medicamentos é feita pela janela aberta no botão
   // "Adicionar do catálogo".
-
   itensTemporarios = receita
     ? JSON.parse(JSON.stringify(receita.itens || []))
     : [];
@@ -1401,6 +1412,134 @@ $('btnAddAvulso').addEventListener('click', () => {
 });
 
 $('btnNovaReceita').addEventListener('click', () => abrirReceita());
+$('btnImprimirReceitas').addEventListener('click', () => {
+  const tabela = $('listaReceitas').closest('table');
+  const totalReceitas = $('listaReceitas').children.length;
+
+  if (totalReceitas === 0) {
+    mostrarAviso('Atenção', 'Não há receitas pendentes para imprimir.');
+    return;
+  }
+
+  const janela = window.open('', '_blank');
+
+  if (!janela) {
+    mostrarAviso(
+      'Atenção',
+      'O navegador bloqueou a janela de impressão. Permita a abertura de janelas para este site e tente novamente.'
+    );
+    return;
+  }
+
+  const tabelaParaImprimir = tabela.cloneNode(true);
+
+  tabelaParaImprimir.querySelectorAll('button').forEach(botao => {
+    botao.replaceWith(document.createTextNode(botao.textContent.trim()));
+  });
+
+  // Remove "Entregue em" e "Status" apenas da tabela impressa.
+  tabelaParaImprimir.querySelectorAll('tr').forEach(linha => {
+    linha.cells[6]?.remove();
+    linha.cells[4]?.remove();
+  });
+
+  const dataImpressao = new Date().toLocaleString('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short'
+  });
+
+  const textoTotal = totalReceitas === 1
+    ? '1 receita pendente'
+    : `${totalReceitas} receitas pendentes`;
+
+  janela.document.write(`
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8">
+        <title>Receitas pendentes</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            color: #000;
+            margin: 24px;
+          }
+
+          h1 {
+            font-size: 20px;
+            margin-bottom: 6px;
+          }
+
+          .informacoes {
+            margin: 0 0 16px;
+            font-size: 12px;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+
+          th, td {
+            border: 1px solid #777;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+          }
+
+          th {
+            background: #eee;
+          }
+
+          tr.atrasada td {
+            background: #fff0d6;
+          }
+
+          .alerta-dias {
+            display: inline-block;
+            margin-top: 4px;
+            padding: 3px 5px;
+            border: 1px solid #a45b00;
+            color: #7a4200;
+            font-weight: bold;
+          }
+
+          @media print {
+            body {
+              margin: 10mm;
+            }
+
+            thead {
+              display: table-header-group;
+            }
+
+            tr {
+              break-inside: avoid;
+            }
+
+            tr.atrasada td {
+              print-color-adjust: exact;
+              -webkit-print-color-adjust: exact;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Receitas aguardando entrega</h1>
+        <p class="informacoes">
+          ${textoTotal} — Impresso em ${dataImpressao}
+        </p>
+        ${tabelaParaImprimir.outerHTML}
+      </body>
+    </html>
+  `);
+
+  janela.document.close();
+  janela.addEventListener('load', () => {
+    janela.focus();
+    janela.print();
+  });
+});
 
 $('btnCancelarReceita').addEventListener('click', () => {
   $('dlgReceita').close();
@@ -1438,7 +1577,19 @@ function nascimentoValido(texto) {
     data.getMonth() === mes - 1 &&
     data.getDate() === dia;
 
-  return existe && ano >= 1900 && data <= new Date();
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  let idade = hoje.getFullYear() - ano;
+  const aindaNaoFezAniversario =
+    hoje.getMonth() < mes - 1 ||
+    (hoje.getMonth() === mes - 1 && hoje.getDate() < dia);
+
+  if (aindaNaoFezAniversario) {
+    idade--;
+  }
+
+  return existe && ano >= 1900 && data <= hoje && idade <= 100;
 }
 
 function aplicarTipoCadastro(limparCampo = true) {
@@ -1508,6 +1659,7 @@ function validarReceita() {
   const paciente = $('rPaciente').value.trim();
   const cadastro = $('rCadastro').value.trim();
   const dataRetida = $('rDataRetida').value;
+  const dataEntrega = $('rDataEntrega').value;
   const ehNascimento = $('rTipoCadastro').value === 'nascimento';
 
   if (!paciente) {
@@ -1515,7 +1667,10 @@ function validarReceita() {
   }
 
   if (!SOMENTE_LETRAS.test(paciente)) {
-    return avisarCampo('O nome do paciente deve conter apenas letras.', $('rPaciente'));
+    return avisarCampo(
+      'O nome do paciente deve conter apenas letras.',
+      $('rPaciente')
+    );
   }
 
   if (!cadastro) {
@@ -1535,11 +1690,38 @@ function validarReceita() {
       );
     }
   } else if (!SOMENTE_NUMEROS.test(cadastro)) {
-    return avisarCampo('O número do cadastro deve conter apenas números.', $('rCadastro'));
+    return avisarCampo(
+      'O número do cadastro deve conter apenas números.',
+      $('rCadastro')
+    );
   }
 
   if (!dataRetida) {
-    return avisarCampo('Informe a data da receita retida.', $('rDataRetida'));
+    return avisarCampo(
+      'Informe a data da receita retida.',
+      $('rDataRetida')
+    );
+  }
+
+  if (dataRetida > dataDeHoje()) {
+    return avisarCampo(
+      'A data da receita retida não pode ser futura.',
+      $('rDataRetida')
+    );
+  }
+
+  if (dataEntrega && dataEntrega > dataDeHoje()) {
+    return avisarCampo(
+      'A data da receita entregue não pode ser futura.',
+      $('rDataEntrega')
+    );
+  }
+
+  if (dataEntrega && dataEntrega < dataRetida) {
+    return avisarCampo(
+      'A data da receita entregue não pode ser anterior à data da receita retida.',
+      $('rDataEntrega')
+    );
   }
 
   const itensValidos = itensTemporarios.filter(
@@ -1547,7 +1729,10 @@ function validarReceita() {
   );
 
   if (itensValidos.length === 0) {
-    return avisarCampo('Inclua pelo menos um medicamento na receita, com o nome preenchido.', $('rSelMed'));
+    return avisarCampo(
+      'Inclua pelo menos um medicamento na receita, com o nome preenchido.',
+      $('rSelMed')
+    );
   }
 
   for (const item of itensValidos) {
@@ -1561,6 +1746,7 @@ function validarReceita() {
     }
 
     const dosagem = String(item.dosagem || '').trim();
+
     if (dosagem && !DOSAGEM_VALIDA.test(dosagem)) {
       return avisarCampo(
         `A dosagem de "${nome}" deve conter apenas números. Exemplo: 10 ou 0,5.`,
