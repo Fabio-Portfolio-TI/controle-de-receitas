@@ -35,6 +35,58 @@ function mostrarAviso(titulo, mensagem, aoFechar) {
   botaoOk.focus();
 }
 
+function mostrarConfirmacao(titulo, mensagem, textoConfirmar = 'Confirmar') {
+  const dialogo = $('dlgAviso');
+  const tituloElemento = $('avisoTitulo');
+  const textoElemento = $('avisoTexto');
+  const botaoCancelar = $('avisoCancelar');
+  const botaoOk = $('avisoOk');
+
+  if (
+    !dialogo ||
+    !tituloElemento ||
+    !textoElemento ||
+    !botaoCancelar ||
+    !botaoOk ||
+    typeof dialogo.showModal !== 'function'
+  ) {
+    mostrarAviso('Atenção', 'Não foi possível abrir a confirmação.');
+    return Promise.resolve(false);
+  }
+
+  tituloElemento.textContent = titulo;
+  textoElemento.textContent = mensagem;
+  botaoCancelar.textContent = 'Cancelar';
+  botaoCancelar.hidden = false;
+  botaoOk.textContent = textoConfirmar;
+
+  return new Promise(resolve => {
+    let resolvida = false;
+
+    const finalizar = resposta => {
+      if (resolvida) return;
+      resolvida = true;
+
+      dialogo.onclose = null;
+      botaoCancelar.onclick = null;
+      botaoOk.onclick = null;
+
+      botaoCancelar.hidden = true;
+      botaoOk.textContent = 'OK';
+
+      if (dialogo.open) dialogo.close();
+      resolve(resposta);
+    };
+
+    dialogo.onclose = () => finalizar(false);
+    botaoCancelar.onclick = () => finalizar(false);
+    botaoOk.onclick = () => finalizar(true);
+
+    dialogo.showModal();
+    botaoOk.focus();
+  });
+}
+
 let db = carregarDados();
 let itensTemporarios = [];
 let ordemReceitas = { campo: 'dataRetida', direcao: 'desc' };
@@ -240,9 +292,16 @@ function adicionarUnidade() {
   const resposta = prompt('Digite o novo tipo de dosagem (exemplos: gotas, UI, g):');
   if (resposta === null) return '';
 
-  const nova = resposta.trim().toLowerCase();
+  return salvarTipoDosagem(resposta);
+}
 
-  if (!nova) return '';
+function salvarTipoDosagem(texto) {
+  const nova = String(texto || '').trim().toLowerCase();
+
+  if (!nova) {
+    mostrarAviso('Atenção', 'Digite o novo tipo de dosagem.');
+    return '';
+  }
 
   if (!UNIDADE_VALIDA.test(nova)) {
     mostrarAviso(
@@ -256,10 +315,11 @@ function adicionarUnidade() {
   if (existente) return existente;
 
   db.unidades.push(nova);
+
   try {
     localStorage.setItem(CHAVE_DADOS, JSON.stringify(db));
   } catch (erro) {
-    // o salvamento completo acontece depois, junto com o restante
+    // O salvamento completo acontece junto com o restante dos dados.
   }
 
   return nova;
@@ -368,7 +428,11 @@ function preencherUsuariosDoLogin(selecionado = '') {
     a.nome.localeCompare(b.nome, 'pt-BR')
   );
 
-  $('lUsuario').innerHTML =
+  const campoUsuario = $('lUsuario');
+  const botaoUsuario = $('btnUsuarioLogin');
+  const listaUsuarios = $('listaUsuariosLogin');
+
+  campoUsuario.innerHTML =
     '<option value="">— Escolha seu nome —</option>' +
     usuarios.map(usuario => `
       <option value="${escapar(usuario.id)}"
@@ -376,7 +440,54 @@ function preencherUsuariosDoLogin(selecionado = '') {
         ${escapar(usuario.nome)}
       </option>
     `).join('');
+
+  listaUsuarios.innerHTML = usuarios.map(usuario => `
+    <button type="button" data-usuario-id="${escapar(usuario.id)}">
+      ${escapar(usuario.nome)}
+    </button>
+  `).join('');
+
+  const usuarioSelecionado = usuarios.find(
+    usuario => usuario.id === selecionado
+  );
+
+  botaoUsuario.textContent = usuarioSelecionado
+    ? usuarioSelecionado.nome
+    : '— Escolha seu nome —';
+
+  botaoUsuario.disabled = usuarios.length === 0;
 }
+
+$('btnUsuarioLogin').addEventListener('click', () => {
+  const lista = $('listaUsuariosLogin');
+  const vaiAbrir = lista.hidden;
+
+  lista.hidden = !vaiAbrir;
+  $('btnUsuarioLogin').setAttribute('aria-expanded', String(vaiAbrir));
+});
+
+$('listaUsuariosLogin').addEventListener('click', evento => {
+  const opcao = evento.target.closest('[data-usuario-id]');
+  if (!opcao) return;
+
+  const id = opcao.dataset.usuarioId;
+  const usuario = db.usuarios.find(item => item.id === id);
+  if (!usuario) return;
+
+  $('lUsuario').value = id;
+  $('btnUsuarioLogin').textContent = usuario.nome;
+  $('listaUsuariosLogin').hidden = true;
+  $('btnUsuarioLogin').setAttribute('aria-expanded', 'false');
+});
+
+document.addEventListener('click', evento => {
+  const seletor = document.querySelector('.seletor-usuario-login');
+
+  if (seletor && !seletor.contains(evento.target)) {
+    $('listaUsuariosLogin').hidden = true;
+    $('btnUsuarioLogin').setAttribute('aria-expanded', 'false');
+  }
+});
 
 function bloquearTelaPrincipal(bloquear) {
   document.querySelectorAll('.topo, .conteudo, .rodape').forEach(elemento => {
@@ -479,7 +590,7 @@ $('formLogin').addEventListener('submit', async evento => {
       `${usuario.nome} ainda não tem senha.\n\n` +
       'A senha que você digitou será a sua senha daqui para frente. Continuar?';
 
-    if (!confirm(mensagem)) return;
+    if (!await mostrarConfirmacao('Definir senha', mensagem, 'Definir senha')) return;
 
     usuario.senhaHash = await criarHashSenha(usuario.id, senha);
     entrar(usuario);
@@ -685,8 +796,6 @@ function mostrarReceitas() {
 
   $('listaReceitas').innerHTML = receitas.map(receita => {
     const quantidade = (receita.itens || []).length;
-    const textoQuantidade =
-      quantidade === 1 ? '1 medicamento' : `${quantidade} medicamentos`;
 
     const dataRetirar = receita.dataRetida
       ? (() => {
@@ -704,10 +813,12 @@ function mostrarReceitas() {
 
     const dias = diasDaReceita(receita);
     const passouDoLimite = dias > LIMITE_DIAS;
+    const diasAtraso = dias - LIMITE_DIAS;
+
     const avisoDias = dias === LIMITE_DIAS - 1
-      ? '<span class="alerta-dias">Falta 1 dia para completar 30 dias</span>'
+      ? `<span class="alerta-dias">Falta 1 dia para completar ${LIMITE_DIAS} dias</span>`
       : passouDoLimite
-        ? `<span class="alerta-dias">${dias} dias</span>`
+        ? `<span class="alerta-dias">Prazo excedido há ${diasAtraso} ${diasAtraso === 1 ? 'dia' : 'dias'}</span>`
         : '';
 
     return `
@@ -722,13 +833,13 @@ function mostrarReceitas() {
           </button>
         </td>
        <td data-label="Retida em">${formatarData(receita.dataRetida)}</td>
-<td data-label="Retirar a partir de">${formatarData(dataRetirar) || '—'}</td>
-<td data-label="Retida por">${escapar(nomeDaPessoa(receita.retidaPor))}</td>
+<td data-label="Disponível em">${formatarData(dataRetirar) || '—'}</td>
+<td data-label="Registrada por">${escapar(nomeDaPessoa(receita.retidaPor))}</td>
         <td data-label="Status">
           <span class="tag aguardando">Aguardando entrega</span>
           ${avisoDias}
         </td>
-        <td data-label="Medicamentos">${textoQuantidade}</td>
+        <td data-label="Medicamentos">${quantidade}</td>
         <td data-label="Entregue em">—</td>
       </tr>
     `;
@@ -835,7 +946,7 @@ function mostrarExcluidos() {
         </button>
       </td>
       <td data-label="Retida em">${formatarData(receita.dataRetida)}</td>
-      <td data-label="Retirada em">${formatarData(receita.dataEntrega)}</td>
+      <td data-label="Entregue em">${formatarData(receita.dataEntrega)}</td>
       <td data-label="Excluída por">${escapar(nomeDaPessoa(receita.excluidaPor))}</td>
       <td data-label="Excluída em">${formatarDataHora(receita.excluidaEm)}</td>
     </tr>
@@ -918,11 +1029,11 @@ function mostrarEntregues() {
           </button>
         </td>
         <td data-label="Retida em">${formatarData(receita.dataRetida)}</td>
-        <td data-label="Retirada em">
+        <td data-label="Entregue em">
           ${formatarData(receita.dataEntrega)}
           ${avisoAntecipado}
         </td>
-        <td data-label="Retida por">${escapar(nomeDaPessoa(receita.retidaPor))}</td>
+        <td data-label="Registrada por"${escapar(nomeDaPessoa(receita.retidaPor))}</td>
         <td data-label="Entregue por">${escapar(nomeDaPessoa(receita.entreguePor))}</td>
       </tr>
     `;
@@ -1019,7 +1130,7 @@ $('listaExcluidos').addEventListener('click', evento => {
 
   if (!receita) return;
 
-  abrirConsulta(receita, 'Receita excluída (somente consulta)');
+  abrirConsulta(receita, 'Receita excluída');
 });
 
 $('listaEntregues').addEventListener('click', evento => {
@@ -1032,7 +1143,7 @@ $('listaEntregues').addEventListener('click', evento => {
 
   if (!receita || !receita.dataEntrega) return;
 
-  abrirConsulta(receita, 'Receita entregue (somente consulta)');
+  abrirConsulta(receita, 'Receita entregue');
 });
 
 $('btnEditarConsulta').addEventListener('click', () => {
@@ -1085,13 +1196,15 @@ document.querySelectorAll('.aba').forEach(botao => {
   });
 });
 
+// ===== AVISO SOBRE A BUSCA PELO NOME DO PACIENTE =====
 let avisoBuscaMostrado = false;
-
-// ===== POUP-UP DO CAMPO SOMENTE NOME DO PACIENTE =====
 
 $('busca').addEventListener('focus', () => {
   if (!avisoBuscaMostrado) {
-    alert('A busca localiza pacientes somente pelo nome e mostra em qual aba estão.');
+    mostrarAviso(
+      'Sobre a busca',
+      'A busca localiza pacientes somente pelo nome e mostra em qual aba estão.'
+    );
     avisoBuscaMostrado = true;
   }
 });
@@ -1129,7 +1242,7 @@ document.addEventListener('click', evento => {
           botaoAba.click();
         }
 
-        abrirConsulta(receita, 'Receita (somente consulta)');
+        abrirConsulta(receita, 'Receita');
       }
 
       break;
@@ -1171,7 +1284,7 @@ function abrirReceita(id = '') {
 
   // Receita entregue: abre somente para consulta
   if (receita && receita.dataEntrega) {
-    abrirConsulta(receita, 'Receita entregue (somente consulta)');
+    abrirConsulta(receita, 'Receita entregue');
     return;
   }
 
@@ -1913,14 +2026,19 @@ $('formReceita').addEventListener('submit', evento => {
 });
 
 // Excluir receita: vai para a aba Excluídos, com o nome de quem excluiu
-$('btnExcluirReceita').addEventListener('click', () => {
+$('btnExcluirReceita').addEventListener('click', async () => {
   const id = $('formReceita').dataset.id;
   if (!id || !usuarioAtual) return;
 
   const receita = db.receitas.find(item => item.id === id);
   if (!receita) return;
 
-  if (!confirm('Excluir esta receita? Ela será movida para a aba "Excluídos".')) return;
+  const confirmou = await mostrarConfirmacao(
+    'Excluir receita',
+    'Excluir esta receita? Ela será movida para a aba "Excluídos".',
+    'Excluir'
+  );
+  if (!confirmou) return;
 
   db.excluidos.push({
     ...receita,
@@ -1947,6 +2065,9 @@ function abrirMedicamento(id = '') {
   preencherUnidadesMed(dados ? dados.unidadeDosagem || 'mg' : 'mg');
   $('mTotal').value = dados ? totalDoItem(dados) : 0;
 
+  $('telaDadosMed').hidden = false;
+  $('telaNovaUnidade').hidden = true;
+
   $('dlgMed').showModal();
 }
 
@@ -1958,8 +2079,26 @@ $('btnCancelarMed').addEventListener('click', () => {
 
 // Botão "Adicionar tipo" da dosagem
 $('btnNovaUnidade').addEventListener('click', () => {
-  const nova = adicionarUnidade();
-  if (nova) preencherUnidadesMed(nova);
+  $('telaDadosMed').hidden = true;
+  $('telaNovaUnidade').hidden = false;
+  $('mNovaUnidade').value = '';
+  $('mNovaUnidade').focus();
+});
+
+$('btnSalvarNovaUnidade').addEventListener('click', () => {
+  const nova = salvarTipoDosagem($('mNovaUnidade').value);
+
+  if (!nova) return;
+
+  preencherUnidadesMed(nova);
+  $('telaNovaUnidade').hidden = true;
+  $('telaDadosMed').hidden = false;
+});
+
+$('btnVoltarNovaUnidade').addEventListener('click', () => {
+  $('telaNovaUnidade').hidden = true;
+  $('telaDadosMed').hidden = false;
+  $('mUnidadeDosagem').focus();
 });
 
 $('novoMedReceitaDosagem').addEventListener('input', () => {
@@ -2010,8 +2149,13 @@ $('formMed').addEventListener('submit', evento => {
   salvarDados();
 });
 
-function excluirMedicamento(id) {
-  if (!confirm('Excluir este medicamento do catálogo?')) return;
+async function excluirMedicamento(id) {
+  const confirmou = await mostrarConfirmacao(
+    'Excluir medicamento',
+    'Excluir este medicamento do catálogo?',
+    'Excluir'
+  );
+  if (!confirmou) return;
 
   db.medicamentos = db.medicamentos.filter(item => item.id !== id);
   salvarDados();
@@ -2092,31 +2236,33 @@ $('btnExportar').addEventListener('click', () => {
   setTimeout(() => URL.revokeObjectURL(endereco), 1000);
 });
 
-$('inputImportar').addEventListener('change', evento => {
+$('inputImportar').addEventListener('change', async evento => {
   const arquivo = evento.target.files[0];
   if (!arquivo) return;
 
-  arquivo.text().then(conteudo => {
-    try {
-      const dados = ajustarBanco(JSON.parse(conteudo));
+  try {
+    const conteudo = await arquivo.text();
+    const dados = ajustarBanco(JSON.parse(conteudo));
 
-      if (!confirm('Importar este backup substituirá os dados atuais. Continuar?')) {
-        evento.target.value = '';
-        return;
-      }
+    const confirmou = await mostrarConfirmacao(
+      'Importar backup',
+      'Importar este backup substituirá os dados atuais. Continuar?',
+      'Importar'
+    );
 
-      db = dados;
-      salvarDados();
-      mostrarAviso('Backup importado', 'Backup importado com sucesso.');
-    } catch (erro) {
-      mostrarAviso(
-        'Erro ao importar',
-        'Não foi possível importar. Escolha um backup JSON válido do aplicativo.'
-      );
-    }
+    if (!confirmou) return;
 
+    db = dados;
+    salvarDados();
+    mostrarAviso('Backup importado', 'Backup importado com sucesso.');
+  } catch (erro) {
+    mostrarAviso(
+      'Erro ao importar',
+      'Não foi possível importar. Escolha um backup JSON válido do aplicativo.'
+    );
+  } finally {
     evento.target.value = '';
-  });
+  }
 });
 
 // ===== INICIAR O APLICATIVO =====
@@ -2147,3 +2293,22 @@ $('rDataRetida').addEventListener('input', () => {
 
   $('rDataRetirar').value = `${anoRetirada}-${mesRetirada}-${diaRetirada}`;
 });
+
+const botaoVoltarTopo = document.getElementById('btnVoltarTopo');
+
+function atualizarBotaoVoltarTopo() {
+  const alturaDocumento = document.documentElement.scrollHeight;
+  const chegouAoFinal =
+    window.innerHeight + window.scrollY >= alturaDocumento - 120;
+
+  botaoVoltarTopo.hidden = !chegouAoFinal;
+}
+
+window.addEventListener('scroll', atualizarBotaoVoltarTopo, { passive: true });
+window.addEventListener('resize', atualizarBotaoVoltarTopo);
+
+botaoVoltarTopo.addEventListener('click', () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+atualizarBotaoVoltarTopo();

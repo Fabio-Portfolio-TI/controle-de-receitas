@@ -76,11 +76,11 @@
             <tr>
               <th><button type="button" class="ordenar" data-ordenar="paciente">Paciente</button></th>
               <th><button type="button" class="ordenar" data-ordenar="dataRetida">Retida em</button></th>
-              <th>Retirar a partir de</th>
-              <th><button type="button" class="ordenar" data-ordenar="retidaPor">Retida por</button></th>
-              <th><button type="button" class="ordenar" data-ordenar="status">Status</button></th>
-              <th><button type="button" class="ordenar" data-ordenar="medicamentos">Medicamentos</button></th>
-              <th><button type="button" class="ordenar" data-ordenar="dataEntrega">Entregue em</button></th>
+              <th>Disponível em</th>
+              <th>Registrada por</th>
+              <th>Status</th>
+              <th>Medicamentos</th>
+              <th>Entregue</th>
             </tr>
           </thead>
           <tbody id="listaReceitas"></tbody>
@@ -120,8 +120,8 @@
             <tr>
               <th>Paciente</th>
               <th>Retida em</th>
-              <th>Retirada em</th>
-              <th>Retida por</th>
+              <th>Entregue em</th>
+              <th>Registrada por</th>
               <th>Entregue por</th>
             </tr>
           </thead>
@@ -140,7 +140,7 @@
             <tr>
               <th>Paciente</th>
               <th>Retida em</th>
-              <th>Retirada em</th>
+              <th>Entregue em</th>
               <th>Excluída por</th>
               <th>Excluída em</th>
             </tr>
@@ -162,7 +162,15 @@
     <form id="formLogin" novalidate>
       <h1 class="login-titulo">Controle de Receitas</h1>
       <label for="lUsuario">Nome do usuário</label>
-      <select id="lUsuario"></select>
+      <div class="seletor-usuario-login">
+        <button id="btnUsuarioLogin" type="button" aria-expanded="false">
+          — Escolha seu nome —
+        </button>
+
+        <div id="listaUsuariosLogin" class="lista-usuarios-login" hidden></div>
+
+        <select id="lUsuario" hidden></select>
+      </div>
 
       <label for="lSenha">Senha (4 números)</label>
       <input type="password" id="lSenha" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••">
@@ -374,36 +382,54 @@
   <!-- ===== JANELA: MEDICAMENTO ===== -->
   <dialog id="dlgMed" class="janela">
     <form id="formMed">
-      <h2 id="tituloMed">Novo medicamento</h2>
+      <div id="telaDadosMed">
+        <h2 id="tituloMed">Novo medicamento</h2>
 
-      <label for="mNome">Nome do medicamento *</label>
-      <input id="mNome" required autocomplete="off">
+        <label for="mNome">Nome do medicamento *</label>
+        <input id="mNome" required autocomplete="off">
 
-      <label for="mDosagem">Dosagem</label>
-      <div class="dosagem-campo">
-        <input id="mDosagem" type="text" inputmode="decimal" placeholder="Ex.: 10">
-        <select id="mUnidadeDosagem" aria-label="Unidade da dosagem">
-          <option value="mg">mg</option>
-          <option value="ml">ml</option>
-          <option value="cp">cp</option>
-          <option value="mcg">mcg</option>
-        </select>
-        <button class="btn" type="button" id="btnNovaUnidade">Adicionar tipo</button>
+        <label for="mDosagem">Dosagem</label>
+        <div class="dosagem-campo">
+          <input id="mDosagem" type="text" inputmode="decimal" placeholder="Ex.: 10">
+          <select id="mUnidadeDosagem" aria-label="Unidade da dosagem">
+            <option value="mg">mg</option>
+            <option value="ml">ml</option>
+            <option value="cp">cp</option>
+            <option value="mcg">mcg</option>
+          </select>
+          <button class="btn" type="button" id="btnNovaUnidade">Adicionar tipo</button>
+        </div>
+
+        <label for="mTotal">Total/Dia</label>
+        <input type="number" id="mTotal" step="0.5" min="0" value="0">
+
+        <div class="janela-botoes">
+          <button class="btn destaque" type="submit">Salvar</button>
+          <button class="btn" type="button" id="btnCancelarMed">Cancelar</button>
+        </div>
       </div>
 
-      <label for="mTotal">Total/Dia</label>
-      <input type="number" id="mTotal" step="0.5" min="0" value="0">
+      <div id="telaNovaUnidade" hidden>
+        <h2>Novo tipo de dosagem</h2>
 
-      <div class="janela-botoes">
-        <button class="btn destaque" type="submit">Salvar</button>
-        <button class="btn" type="button" id="btnCancelarMed">Cancelar</button>
+        <label for="mNovaUnidade">Tipo de dosagem *</label>
+        <input id="mNovaUnidade" type="text" maxlength="12" autocomplete="off" placeholder="Ex.: gotas, UI, g">
+
+        <div class="janela-botoes">
+          <button class="btn destaque" type="button" id="btnSalvarNovaUnidade">
+            Salvar tipo
+          </button>
+          <button class="btn" type="button" id="btnVoltarNovaUnidade">
+            Voltar
+          </button>
+        </div>
       </div>
     </form>
   </dialog>
 
   <!-- ===== JANELA: CONSULTAR RECEITA (SOMENTE LEITURA) ===== -->
   <dialog id="dlgExcluida" class="janela larga">
-    <h2>Receita excluída (somente consulta)</h2>
+    <h2>Receita excluída</h2>
     <div id="detalheExcluida"></div>
     <div class="janela-botoes">
       <button class="btn" type="button" id="btnEditarConsulta" hidden>Editar</button>
@@ -422,6 +448,11 @@
       </div>
     </div>
   </dialog>
+
+  <button id="btnVoltarTopo" class="btn-voltar-topo" type="button" aria-label="Voltar ao início"
+    title="Voltar ao início" hidden>
+    ↑
+  </button>
 
   <script src="js/app.js"></script>
 </body>

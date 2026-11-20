@@ -548,7 +548,7 @@ html[data-tema="escuro"] .erro-login {
   margin-top: 12px;
 }
 
-#rItens > * {
+#rItens>* {
   padding: 12px;
   border: 1px solid var(--borda);
   border-radius: 8px;
@@ -558,11 +558,7 @@ html[data-tema="escuro"] .erro-login {
 .item-med {
   display: grid;
   grid-template-columns:
-    minmax(150px, 2fr)
-    minmax(200px, 1.6fr)
-    minmax(82px, 0.75fr)
-    minmax(82px, 0.75fr)
-    auto;
+    minmax(150px, 2fr) minmax(200px, 1.6fr) minmax(82px, 0.75fr) minmax(82px, 0.75fr) auto;
   gap: 8px;
   align-items: end;
 }
@@ -730,7 +726,7 @@ html[data-tema="escuro"] .aviso-caixa h2 {
   }
 
   .topo-linha {
-    align-items: flex-start;
+    align-items: center;
   }
 
   .topo-acoes {
@@ -760,7 +756,7 @@ html[data-tema="escuro"] .aviso-caixa h2 {
     gap: 0;
   }
 
-  .janela-botoes > * {
+  .janela-botoes>* {
     flex: 1 1 140px;
   }
 }
@@ -787,7 +783,7 @@ html[data-tema="escuro"] .aviso-caixa h2 {
     padding: 10px 7px;
   }
 
-  .topo-arquivos > * {
+  .topo-arquivos>* {
     flex: 1 1 100%;
   }
 }
@@ -828,8 +824,8 @@ html[data-tema="escuro"] .aviso-caixa h2 {
 }
 
 /* Cada medicamento aparece em uma linha com a caixa ao lado do nome */
-#listaEscolherMeds > label,
-#listaEscolherMeds > div {
+#listaEscolherMeds>label,
+#listaEscolherMeds>div {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -842,8 +838,8 @@ html[data-tema="escuro"] .aviso-caixa h2 {
   font-size: 0.95rem;
 }
 
-#listaEscolherMeds > label:hover,
-#listaEscolherMeds > div:hover {
+#listaEscolherMeds>label:hover,
+#listaEscolherMeds>div:hover {
   border-color: var(--borda);
   background: var(--verde-claro);
 }
@@ -880,7 +876,7 @@ html[data-tema="escuro"] .aviso-caixa h2 {
     max-height: 200px;
   }
 
-  #dlgEscolherMeds .janela-botoes > * {
+  #dlgEscolherMeds .janela-botoes>* {
     flex: 1 1 100%;
   }
 }
@@ -1001,4 +997,358 @@ html[data-tema="escuro"] .aviso-caixa h2 {
 
 #dlgConfirmarSaida .janela-botoes {
   justify-content: center;
+}
+
+/* Centraliza o título e os valores da coluna Medicamentos */
+#aba-receitas table thead th:nth-child(6),
+#listaReceitas td[data-label="Medicamentos"] {
+  text-align: center;
+}
+
+/* Centraliza o título e os valores da coluna Entregue */
+#aba-receitas table thead th:nth-child(7),
+#listaReceitas td:nth-child(7) {
+  text-align: center;
+}
+
+/* Centraliza o título e o conteúdo da coluna Status */
+#aba-receitas table thead th:nth-child(5),
+#aba-receitas table thead th:nth-child(5) .ordenar,
+#listaReceitas td:nth-child(5) {
+  text-align: center;
+}
+
+/* Centraliza o título e os valores da coluna Disponível em */
+#aba-receitas table thead th:nth-child(3),
+#listaReceitas td:nth-child(3) {
+  text-align: center;
+}
+
+/* Centraliza a coluna Registrada por nas abas Receitas e Entregues */
+#aba-receitas table thead th:nth-child(4),
+#aba-receitas table thead th:nth-child(4) .ordenar,
+#listaReceitas td:nth-child(4),
+#aba-entregues table thead th:nth-child(4),
+#listaEntregues td:nth-child(4) {
+  text-align: center;
+}
+
+/* Centraliza as colunas de entrega e responsáveis em Entregues */
+#aba-entregues thead th:nth-child(3),
+#aba-entregues tbody td:nth-child(3),
+#aba-entregues thead th:nth-child(4),
+#aba-entregues tbody td:nth-child(4),
+#aba-entregues thead th:nth-child(5),
+#aba-entregues tbody td:nth-child(5),
+
+/* Centraliza datas e responsável pela exclusão em Excluídos */
+#aba-excluidos thead th:nth-child(2),
+#aba-excluidos tbody td:nth-child(2),
+#aba-excluidos thead th:nth-child(3),
+#aba-excluidos tbody td:nth-child(3),
+#aba-excluidos thead th:nth-child(4),
+#aba-excluidos tbody td:nth-child(4),
+#aba-excluidos thead th:nth-child(5),
+#aba-excluidos tbody td:nth-child(5) {
+  text-align: center;
+}
+
+/* Tabelas de receitas em cartões para telas pequenas */
+@media (max-width: 760px) {
+
+  #aba-receitas table,
+  #aba-entregues table,
+  #aba-excluidos table {
+    width: 100%;
+    min-width: 0;
+    border-collapse: separate;
+  }
+
+  #aba-receitas thead,
+  #aba-entregues thead,
+  #aba-excluidos thead {
+    display: none;
+  }
+
+  #listaReceitas,
+  #listaEntregues,
+  #listaExcluidos {
+    display: grid;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  #listaReceitas tr,
+  #listaEntregues tr,
+  #listaExcluidos tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: hidden;
+    border: 1px solid var(--borda);
+    border-radius: 10px;
+    background: var(--superficie);
+  }
+
+  #listaReceitas td,
+  #listaEntregues td,
+  #listaExcluidos td {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--borda);
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
+  #listaReceitas td::before,
+  #listaEntregues td::before,
+  #listaExcluidos td::before {
+    content: attr(data-label);
+    margin-bottom: 4px;
+    color: var(--texto-suave);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  #listaReceitas td:first-child,
+  #listaEntregues td:first-child,
+  #listaExcluidos td:first-child {
+    grid-column: 1 / -1;
+    background: var(--verde-claro);
+  }
+
+  #listaReceitas td:first-child .link-nome,
+  #listaEntregues td:first-child .link-nome,
+  #listaExcluidos td:first-child .link-nome {
+    text-align: center;
+  }
+
+  #listaReceitas .alerta-dias,
+  #listaEntregues .alerta-dias {
+    margin: 6px 0 0;
+    white-space: normal;
+  }
+}
+
+/* Mantém o status dentro do cartão em telas pequenas */
+@media (max-width: 760px) {
+  #listaReceitas td[data-label="Status"] {
+    min-width: 0;
+    text-align: center;
+  }
+
+  #listaReceitas td[data-label="Status"] .tag,
+  #listaReceitas td[data-label="Status"] .alerta-dias {
+    display: block;
+    box-sizing: border-box;
+    max-width: 100%;
+    margin: 4px auto 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: center;
+  }
+}
+
+/* Centraliza o conteúdo da janela de receita */
+#dlgReceita h2,
+#dlgReceita h3,
+#dlgReceita label {
+  text-align: center;
+}
+
+#dlgReceita input,
+#dlgReceita select,
+#dlgReceita textarea {
+  text-align: center;
+}
+
+#dlgReceita select {
+  text-align-last: center;
+}
+
+#dlgReceita .janela-botoes,
+#dlgReceita .linha-add {
+  justify-content: center;
+}
+
+#dlgReceita #rItens label {
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  #dlgMed .dosagem-campo {
+    grid-template-columns: minmax(0, 1fr) 80px;
+  }
+
+  #dlgMed #btnNovaUnidade {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+}
+
+/* Centraliza os textos do cadastro de medicamento */
+#dlgEscolherMeds .cadastro-med-selecao summary,
+#dlgEscolherMeds .cadastro-med-selecao label {
+  text-align: center;
+}
+
+#dlgEscolherMeds .cadastro-med-selecao input,
+#dlgEscolherMeds .cadastro-med-selecao select {
+  text-align: center;
+}
+
+#dlgEscolherMeds .cadastro-med-selecao select {
+  text-align-last: center;
+}
+
+#dlgEscolherMeds #btnCadastrarMedNaSelecao {
+  display: block;
+  margin: 12px auto;
+}
+
+/* Dá mais espaço para digitar a dosagem no celular */
+@media (max-width: 600px) {
+  #dlgEscolherMeds .dosagem-campo {
+    grid-template-columns: minmax(0, 1fr) 80px;
+  }
+}
+
+/* Centraliza os textos do cadastro de medicamento */
+#dlgEscolherMeds .cadastro-med-selecao summary,
+#dlgEscolherMeds .cadastro-med-selecao label {
+  text-align: center;
+}
+
+#dlgEscolherMeds .cadastro-med-selecao input,
+#dlgEscolherMeds .cadastro-med-selecao select {
+  text-align: center;
+}
+
+#dlgEscolherMeds .cadastro-med-selecao select {
+  text-align-last: center;
+}
+
+#dlgEscolherMeds #btnCadastrarMedNaSelecao {
+  display: block;
+  margin: 12px auto;
+}
+
+/* Dá mais espaço para digitar a dosagem no celular */
+@media (max-width: 600px) {
+  #dlgEscolherMeds .dosagem-campo {
+    grid-template-columns: minmax(0, 1fr) 80px;
+  }
+}
+
+#telaNovaUnidade {
+  text-align: center;
+}
+
+#telaNovaUnidade h2,
+#telaNovaUnidade label {
+  text-align: center;
+}
+
+#telaNovaUnidade input {
+  text-align: center;
+}
+
+#telaNovaUnidade .janela-botoes {
+  justify-content: center;
+}
+
+#telaNovaUnidade[hidden] {
+  display: none;
+}
+
+.seletor-usuario-login {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+#btnUsuarioLogin {
+  width: 100%;
+  text-align: center;
+}
+
+.lista-usuarios-login[hidden] {
+  display: none;
+}
+
+.lista-usuarios-login:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid #b8c9c3;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.lista-usuarios-login button {
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  background: transparent;
+  text-align: center;
+  cursor: pointer;
+}
+
+.lista-usuarios-login button:hover,
+.lista-usuarios-login button:focus {
+  background: #e8f2ee;
+}
+
+#btnVoltarTopo {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1000;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--verde-escuro);
+  color: #fff;
+  font-size: 28px;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+
+#btnVoltarTopo[hidden] {
+  display: none;
+}@media (max-width: 600px) {
+  .abas {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    justify-content: center;
+  }
+
+  .aba {
+    width: 100%;
+    min-width: 0;
+    padding: 9px 3px;
+    font-size: 0.86rem;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .contador {
+    min-width: 0;
+    margin-left: 3px;
+    padding: 1px 4px;
+    font-size: 0.75em;
+  }
 }
