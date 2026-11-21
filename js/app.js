@@ -292,6 +292,71 @@ function opcoesUnidade(selecionada, comOpcaoNova = false) {
   return html;
 }
 
+function atualizarSeletorUnidadeCatalogo(selecionada = 'mg') {
+  const seletor = $('novoMedReceitaUnidade');
+  const botao = $('btnUnidadeCatalogo');
+  const lista = $('listaUnidadesCatalogo');
+
+  if (!seletor || !botao || !lista) return;
+
+  seletor.innerHTML = opcoesUnidade(selecionada, true);
+  seletor.value = selecionada;
+
+  const opcaoAtual = seletor.options[seletor.selectedIndex];
+  botao.textContent = opcaoAtual ? opcaoAtual.textContent : 'mg';
+  lista.replaceChildren();
+
+  Array.from(seletor.options).forEach(opcao => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'opcao-unidade-catalogo';
+    item.setAttribute('role', 'option');
+    item.setAttribute('aria-selected', String(opcao.value === seletor.value));
+    item.textContent = opcao.textContent;
+
+    item.addEventListener('click', () => {
+      if (opcao.value === '__novo__') {
+        const janela = $('dlgNovaUnidadeReceita');
+        janela.dataset.origem = 'catalogo';
+        janela.dataset.unidadeAnterior = seletor.value || 'mg';
+
+        lista.hidden = true;
+        botao.setAttribute('aria-expanded', 'false');
+        $('novaUnidadeReceita').value = '';
+        janela.showModal();
+        $('novaUnidadeReceita').focus();
+        return;
+      }
+
+      seletor.value = opcao.value;
+      botao.textContent = opcao.textContent;
+      lista.hidden = true;
+      botao.setAttribute('aria-expanded', 'false');
+      botao.focus();
+      atualizarSeletorUnidadeCatalogo(opcao.value);
+    });
+
+    lista.appendChild(item);
+  });
+}
+
+$('btnUnidadeCatalogo').addEventListener('click', () => {
+  const botao = $('btnUnidadeCatalogo');
+  const lista = $('listaUnidadesCatalogo');
+  const abrir = lista.hidden;
+
+  atualizarSeletorUnidadeCatalogo(
+    $('novoMedReceitaUnidade').value || 'mg'
+  );
+
+  lista.hidden = !abrir;
+  botao.setAttribute('aria-expanded', String(abrir));
+});
+
+atualizarSeletorUnidadeCatalogo(
+  $('novoMedReceitaUnidade').value || 'mg'
+);
+
 function atualizarSeletorUnidadeMed() {
   const seletor = $('mUnidadeDosagem');
   const botao = $('btnUnidadeDosagem');
@@ -337,7 +402,7 @@ function salvarTipoDosagem(texto) {
   const existente = todasUnidades().find(u => u.toLowerCase() === nova);
   if (existente) return existente;
   db.unidades.push(nova);
-  try { localStorage.setItem(CHAVE_DADOS, JSON.stringify(db)); } catch (erro) {}
+  try { localStorage.setItem(CHAVE_DADOS, JSON.stringify(db)); } catch (erro) { }
   return nova;
 }
 
@@ -1441,10 +1506,20 @@ function mostrarItensDaReceita() {
         <div class="dosagem-campo">
           <input data-indice="${indice}" data-campo="dosagem"
             inputmode="decimal" value="${escapar(item.dosagem)}" placeholder="Ex.: 10">
-          <select data-indice="${indice}" data-campo="unidadeDosagem"
-            aria-label="Unidade da dosagem">
-            ${opcoesUnidade(item.unidadeDosagem || 'mg', true)}
-          </select>
+<div class="seletor-unidade-item">
+  <select data-indice="${indice}" data-campo="unidadeDosagem"
+    aria-label="Unidade da dosagem" hidden>
+    ${opcoesUnidade(item.unidadeDosagem || 'mg', true)}
+  </select>
+
+  <button type="button" class="btn-unidade-item"
+    data-indice="${indice}" aria-expanded="false"
+    aria-label="Escolher unidade da dosagem">
+    ${escapar(item.unidadeDosagem || 'mg')}
+  </button>
+
+  <div class="lista-unidades-item" role="listbox" hidden></div>
+</div>
         </div>
       </label>
 
@@ -1479,14 +1554,6 @@ $('rItens').addEventListener('input', evento => {
   $('rContagem').textContent = itensTemporarios.length;
 });
 
-$('rItens').addEventListener('change', evento => {
-  if (evento.target.dataset.campo !== 'unidadeDosagem' || evento.target.value !== '__novo__') return;
-  $('dlgNovaUnidadeReceita').dataset.indice = evento.target.dataset.indice;
-  $('novaUnidadeReceita').value = '';
-  $('dlgNovaUnidadeReceita').showModal();
-  $('novaUnidadeReceita').focus();
-});
-
 $('btnSalvarUnidadeReceita').addEventListener('click', () => {
   const janela = $('dlgNovaUnidadeReceita');
   const nova = salvarTipoDosagem($('novaUnidadeReceita').value);
@@ -1499,9 +1566,86 @@ $('btnSalvarUnidadeReceita').addEventListener('click', () => {
   mostrarItensDaReceita();
 });
 
+$('rItens').addEventListener('change', evento => {
+  if (
+    evento.target.dataset.campo !== 'unidadeDosagem' ||
+    evento.target.value !== '__novo__'
+  ) return;
+
+  const indice = Number(evento.target.dataset.indice);
+  const janela = $('dlgNovaUnidadeReceita');
+
+  janela.dataset.origem = 'item';
+  janela.dataset.indice = String(indice);
+  janela.dataset.unidadeAnterior =
+    itensTemporarios[indice]?.unidadeDosagem || 'mg';
+
+  $('novaUnidadeReceita').value = '';
+  janela.showModal();
+  $('novaUnidadeReceita').focus();
+});
+
+$('novoMedReceitaUnidade').addEventListener('change', evento => {
+  const seletor = evento.currentTarget;
+
+  if (seletor.value !== '__novo__') {
+    seletor.dataset.unidadeAnterior = seletor.value;
+    return;
+  }
+
+  const janela = $('dlgNovaUnidadeReceita');
+
+  janela.dataset.origem = 'catalogo';
+  janela.dataset.unidadeAnterior =
+    seletor.dataset.unidadeAnterior || 'mg';
+
+  $('novaUnidadeReceita').value = '';
+  janela.showModal();
+  $('novaUnidadeReceita').focus();
+});
+
+$('btnSalvarUnidadeReceita').addEventListener('click', () => {
+  const janela = $('dlgNovaUnidadeReceita');
+  const nova = salvarTipoDosagem($('novaUnidadeReceita').value);
+
+  if (!nova) {
+    $('novaUnidadeReceita').focus();
+    return;
+  }
+
+  if (janela.dataset.origem === 'catalogo') {
+    atualizarSeletorUnidadeCatalogo(nova);
+    $('novoMedReceitaUnidade').dataset.unidadeAnterior = nova;
+  } else {
+    const indice = Number(janela.dataset.indice);
+
+    if (Number.isInteger(indice) && itensTemporarios[indice]) {
+      itensTemporarios[indice].unidadeDosagem = nova;
+    }
+  }
+
+  janela.close();
+
+  if (janela.dataset.origem !== 'catalogo') {
+    mostrarItensDaReceita();
+  }
+});
+
 $('btnCancelarUnidadeReceita').addEventListener('click', () => {
-  $('dlgNovaUnidadeReceita').close();
-  mostrarItensDaReceita();
+  const janela = $('dlgNovaUnidadeReceita');
+
+  if (janela.dataset.origem === 'catalogo') {
+    const unidadeAnterior = janela.dataset.unidadeAnterior || 'mg';
+
+    atualizarSeletorUnidadeCatalogo(unidadeAnterior);
+    $('novoMedReceitaUnidade').dataset.unidadeAnterior = unidadeAnterior;
+  }
+
+  janela.close();
+
+  if (janela.dataset.origem !== 'catalogo') {
+    mostrarItensDaReceita();
+  }
 });
 
 $('rItens').addEventListener('click', evento => {
@@ -1512,9 +1656,62 @@ $('rItens').addEventListener('click', evento => {
   mostrarItensDaReceita();
 });
 
+$('rItens').addEventListener('click', evento => {
+  const opcao = evento.target.closest('.opcao-unidade-item');
+
+  if (opcao) {
+    const seletor = opcao.closest('.seletor-unidade-item');
+    const lista = seletor.querySelector('.lista-unidades-item');
+    const botao = seletor.querySelector('.btn-unidade-item');
+    const campo = seletor.querySelector(
+      'select[data-campo="unidadeDosagem"]'
+    );
+    const unidade = opcao.dataset.valorUnidade;
+
+    lista.hidden = true;
+    botao.setAttribute('aria-expanded', 'false');
+
+    campo.value = unidade;
+
+    if (unidade === '__novo__') {
+      campo.dispatchEvent(new Event('change', { bubbles: true }));
+    } else {
+      botao.textContent = unidade;
+      campo.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    return;
+  }
+
+  const botao = evento.target.closest('.btn-unidade-item');
+  if (!botao) return;
+
+  const seletor = botao.closest('.seletor-unidade-item');
+  const lista = seletor.querySelector('.lista-unidades-item');
+  const campo = seletor.querySelector(
+    'select[data-campo="unidadeDosagem"]'
+  );
+
+  if (!lista.hidden) {
+    lista.hidden = true;
+    botao.setAttribute('aria-expanded', 'false');
+    return;
+  }
+
+  lista.innerHTML = Array.from(campo.options).map(opcao => `
+    <button type="button" class="opcao-unidade-item"
+      data-valor-unidade="${escapar(opcao.value)}">
+      ${escapar(opcao.textContent)}
+    </button>
+  `).join('');
+
+  lista.hidden = false;
+  botao.setAttribute('aria-expanded', 'true');
+});
+
 let medicamentosSelecionados = new Set();
 
-function mostrarMedicamentosNaSelecao() {
+function mostrarMedicamentosNaSelecao(idNoTopo = null) {
   const termo = $('buscaEscolherMed').value
     .trim()
     .toLocaleLowerCase('pt-BR');
@@ -1528,6 +1725,9 @@ function mostrarMedicamentosNaSelecao() {
         .includes(termo)
     )
     .sort((a, b) => {
+      if (a.id === idNoTopo) return -1;
+      if (b.id === idNoTopo) return 1;
+
       const comparacao = a.nome.localeCompare(b.nome, 'pt-BR');
       return ordem === 'desc' ? -comparacao : comparacao;
     });
@@ -1585,7 +1785,7 @@ $('btnCadastrarMedNaSelecao').addEventListener('click', () => {
   const nome = $('novoMedReceitaNome').value.trim();
   const dosagem = $('novoMedReceitaDosagem').value.trim();
   const unidadeDosagem = $('novoMedReceitaUnidade').value;
-  const totalTexto = $('novoMedReceitaTotal').value;
+  const totalTexto = $('novoMedReceitaTotal').value.trim();
   const total = numero(totalTexto);
 
   if (!nome) {
@@ -1606,19 +1806,28 @@ $('btnCadastrarMedNaSelecao').addEventListener('click', () => {
     return;
   }
 
-  if (dosagem && !DOSAGEM_VALIDA.test(dosagem)) {
+  if (!dosagem || !DOSAGEM_VALIDA.test(dosagem)) {
     mostrarAviso(
       'Atenção',
-      'A dosagem deve conter apenas números. Exemplo: 10 ou 0,5.',
+      'Informe uma dosagem válida, usando apenas números. Exemplo: 10 ou 0,5.',
       () => $('novoMedReceitaDosagem').focus()
     );
     return;
   }
 
-  if (totalTexto === '' || total < 0) {
+  if (!unidadeDosagem || !todasUnidades().includes(unidadeDosagem)) {
     mostrarAviso(
       'Atenção',
-      'Informe um Total/Dia igual ou maior que zero.',
+      'Escolha uma unidade de dosagem.',
+      () => $('btnUnidadeCatalogo').focus()
+    );
+    return;
+  }
+
+  if (totalTexto === '' || !Number.isFinite(total) || total <= 0) {
+    mostrarAviso(
+      'Atenção',
+      'Informe um Total/Dia maior que zero.',
       () => $('novoMedReceitaTotal').focus()
     );
     return;
@@ -1628,7 +1837,7 @@ $('btnCadastrarMedNaSelecao').addEventListener('click', () => {
     id: novoId(),
     nome,
     dosagem,
-    unidadeDosagem: dosagem ? unidadeDosagem : '',
+    unidadeDosagem,
     total
   };
 
@@ -1641,12 +1850,24 @@ $('btnCadastrarMedNaSelecao').addEventListener('click', () => {
   $('novoMedReceitaTotal').value = '0';
   $('buscaEscolherMed').value = '';
 
+  atualizarSeletorUnidadeCatalogo('mg');
+
   const cadastro = $('btnCadastrarMedNaSelecao').closest('details');
   if (cadastro) cadastro.open = false;
 
-  mostrarMedicamentosNaSelecao();
+  mostrarMedicamentosNaSelecao(medicamento.id);
   salvarDados();
 });
+
+const detalhesCadastroMed = $('btnCadastrarMedNaSelecao').closest('details');
+
+if (detalhesCadastroMed) {
+  detalhesCadastroMed.addEventListener('toggle', () => {
+    if (detalhesCadastroMed.open) {
+      requestAnimationFrame(() => $('novoMedReceitaNome').focus());
+    }
+  });
+}
 
 $('btnConfirmarMeds').addEventListener('click', () => {
   const selecionados = db.medicamentos.filter(medicamento =>
@@ -2205,29 +2426,60 @@ $('novoMedReceitaDosagem').addEventListener('input', () => {
 $('formMed').addEventListener('submit', evento => {
   evento.preventDefault();
 
-  const dadosMedicamento = {
-    nome: $('mNome').value.trim(),
-    dosagem: $('mDosagem').value.trim(),
-    unidadeDosagem: $('mUnidadeDosagem').value,
-    total: numero($('mTotal').value)
-  };
+  const nome = $('mNome').value.trim();
+  const dosagem = $('mDosagem').value.trim();
+  const unidadeDosagem = $('mUnidadeDosagem').value;
+  const totalTexto = $('mTotal').value.trim();
+  const total = numero(totalTexto);
+  const valorDosagem = Number(dosagem.replace(',', '.'));
 
-  if (!dadosMedicamento.nome) {
+  if (!nome) {
     mostrarAviso('Atenção', 'Informe o nome do medicamento.', () => $('mNome').focus());
     return;
   }
 
-  // O nome precisa ter pelo menos uma letra (não pode ser só números)
-  if (!/[A-Za-zÀ-ÖØ-öø-ÿ]/.test(dadosMedicamento.nome)) {
-    mostrarAviso('Atenção', 'O nome do medicamento deve conter letras. Não pode ser apenas números.', () => $('mNome').focus());
+  if (!/[A-Za-zÀ-ÖØ-öø-ÿ]/.test(nome)) {
+    mostrarAviso(
+      'Atenção',
+      'O nome do medicamento deve conter letras. Não pode ser apenas números.',
+      () => $('mNome').focus()
+    );
     return;
   }
 
-  // A dosagem, se preenchida, precisa ser um número válido
-  if (dadosMedicamento.dosagem && !DOSAGEM_VALIDA.test(dadosMedicamento.dosagem)) {
-    mostrarAviso('Atenção', 'A dosagem deve conter apenas números. Exemplo: 10 ou 0,5.', () => $('mDosagem').focus());
+  if (!dosagem || !DOSAGEM_VALIDA.test(dosagem) || !Number.isFinite(valorDosagem) || valorDosagem <= 0) {
+    mostrarAviso(
+      'Atenção',
+      'Informe uma dosagem válida maior que zero. Exemplo: 10 ou 0,5.',
+      () => $('mDosagem').focus()
+    );
     return;
   }
+
+  if (!unidadeDosagem || !todasUnidades().includes(unidadeDosagem)) {
+    mostrarAviso(
+      'Atenção',
+      'Escolha uma unidade de dosagem válida.',
+      () => $('btnUnidadeDosagem').focus()
+    );
+    return;
+  }
+
+  if (!totalTexto || !Number.isFinite(total) || total <= 0) {
+    mostrarAviso(
+      'Atenção',
+      'Informe um Total/Dia maior que zero.',
+      () => $('mTotal').focus()
+    );
+    return;
+  }
+
+  const dadosMedicamento = {
+    nome,
+    dosagem,
+    unidadeDosagem,
+    total
+  };
 
   const id = $('formMed').dataset.id;
 

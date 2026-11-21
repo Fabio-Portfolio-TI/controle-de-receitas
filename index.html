@@ -369,12 +369,20 @@
       <label for="novoMedReceitaDosagem">Dosagem</label>
       <div class="dosagem-campo">
         <input id="novoMedReceitaDosagem" type="text" inputmode="decimal" placeholder="Ex.: 10">
-        <select id="novoMedReceitaUnidade" aria-label="Unidade da dosagem">
-          <option value="mg">mg</option>
-          <option value="ml">ml</option>
-          <option value="cp">cp</option>
-          <option value="mcg">mcg</option>
-        </select>
+        <div class="seletor-unidade-catalogo">
+          <select id="novoMedReceitaUnidade" aria-label="Unidade da dosagem" hidden>
+            <option value="mg">mg</option>
+            <option value="ml">ml</option>
+            <option value="cp">cp</option>
+            <option value="mcg">mcg</option>
+            <option value="__novo__">+ Novo tipo…</option>
+          </select>
+
+          <button id="btnUnidadeCatalogo" type="button" aria-haspopup="listbox" aria-expanded="false">mg</button>
+
+          <div id="listaUnidadesCatalogo" class="lista-unidades-catalogo" role="listbox" aria-label="Tipos de dosagem"
+            hidden></div>
+        </div>
       </div>
 
       <label for="novoMedReceitaTotal">Total/Dia</label>

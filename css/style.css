@@ -531,6 +531,74 @@ html[data-tema="escuro"] .erro-login {
   gap: 8px;
 }
 
+/* Seletor compacto de unidade no cadastro do catálogo */
+.seletor-unidade-catalogo {
+  min-width: 0;
+}
+
+#btnUnidadeCatalogo {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 50px;
+  padding: 9px;
+  overflow: hidden;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--superficie);
+  color: var(--texto);
+  font-weight: 600;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#btnUnidadeCatalogo:hover,
+#btnUnidadeCatalogo:focus-visible {
+  border-color: var(--verde);
+  background: var(--verde-claro);
+}
+
+.lista-unidades-catalogo {
+  display: grid;
+  gap: 4px;
+  max-height: 150px;
+  overflow-y: auto;
+  margin-top: 6px;
+  padding: 5px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--superficie);
+}
+
+.opcao-unidade-catalogo {
+  width: 100%;
+  min-height: 40px;
+  padding: 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--superficie);
+  color: var(--texto);
+  text-align: center;
+}
+
+.opcao-unidade-catalogo:hover,
+.opcao-unidade-catalogo:focus-visible,
+.opcao-unidade-catalogo[aria-selected="true"] {
+  border-color: var(--borda);
+  background: var(--verde-claro);
+}
+
+@media (max-width: 600px) {
+  .lista-unidades-catalogo {
+    max-height: 120px;
+  }
+}
+
+.lista-unidades-catalogo[hidden] {
+  display: none;
+}
+
 /* Quando existe o botão "Adicionar tipo" (janela Novo medicamento) */
 .dosagem-campo:has(#btnNovaUnidade) {
   grid-template-columns: 1fr 110px auto;
@@ -570,11 +638,6 @@ html[data-tema="escuro"] .erro-login {
 
 .item-med label {
   font-size: 1rem;
-}
-
-.item-med button {
-  align-self: end;
-  white-space: nowrap;
 }
 
 .sem-itens {
@@ -764,12 +827,51 @@ html[data-tema="escuro"] .aviso-caixa h2 {
 @media (max-width: 680px) {
   .item-med {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    align-items: end;
   }
 
-  .item-med label:first-child,
-  .item-med label:nth-child(2),
-  .item-med button {
+  .item-med>label:first-child,
+  .item-med>label:nth-child(2) {
     grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  .item-med>label:nth-child(3) {
+    grid-column: 1;
+    min-width: 0;
+  }
+
+  .item-med>button[data-remover-item] {
+    box-sizing: border-box;
+    grid-column: 2;
+    justify-self: center;
+    align-self: end;
+    width: auto;
+    min-width: 0;
+    min-height: 50px;
+    padding: 10px 18px;
+    margin-bottom: 5px;
+  }
+
+  .item-med .dosagem-campo {
+    grid-template-columns: minmax(0, 1fr) 90px;
+    gap: 6px;
+  }
+
+  #rItens .btn-unidade-item {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding: 8px 6px;
+    overflow: hidden;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #rItens .lista-unidades-item {
+    max-height: 120px;
   }
 }
 
@@ -1329,7 +1431,9 @@ html[data-tema="escuro"] .aviso-caixa h2 {
 
 #btnVoltarTopo[hidden] {
   display: none;
-}@media (max-width: 600px) {
+}
+
+@media (max-width: 600px) {
   .abas {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1381,7 +1485,7 @@ html[data-tema="escuro"] .aviso-caixa h2 {
     padding: 18px;
   }
 
-  #dlgNovaUnidadeReceita .janela-botoes > * {
+  #dlgNovaUnidadeReceita .janela-botoes>* {
     flex: 1 1 100%;
   }
 }
@@ -1518,7 +1622,7 @@ html[data-tema="escuro"] .aviso-caixa h2 {
   margin-top: 8px;
 }
 
-#dlgNovoUsuario .janela-botoes > * {
+#dlgNovoUsuario .janela-botoes>* {
   flex: 1 1 140px;
   min-height: 46px;
 }
@@ -1605,7 +1709,7 @@ html[data-tema="escuro"] .aviso-caixa h2 {
     padding: 18px;
   }
 
-  #dlgMed .janela-botoes > * {
+  #dlgMed .janela-botoes>* {
     flex: 1 1 100%;
   }
 }
@@ -1728,31 +1832,6 @@ html[data-tema="escuro"] .aviso-caixa h2 {
   }
 }
 
-/* Diferencia Remover medicamento de Excluir receita */
-#dlgReceita button[data-remover-item] {
-  border-color: var(--borda);
-  background: var(--superficie);
-  color: var(--texto-suave);
-  transition: background-color 0.18s ease, border-color 0.18s ease;
-}
-
-#dlgReceita button[data-remover-item]:hover,
-#dlgReceita button[data-remover-item]:focus {
-  border-color: var(--verde);
-  background: var(--verde-claro);
-  color: var(--texto);
-}
-
-@media (max-width: 760px) {
-  #dlgReceita button[data-remover-item] {
-    min-height: 44px;
-    border-color: var(--verde);
-    background: var(--verde-claro);
-    color: var(--texto);
-    font-weight: 700;
-  }
-}
-
 /* ===== AÇÕES DO ADMINISTRADOR: REGISTROS INDIVIDUAIS ===== */
 #dlgExcluida #btnExcluirDefinitivamente {
   border-color: var(--vermelho);
@@ -1770,8 +1849,9 @@ html[data-tema="escuro"] .aviso-caixa h2 {
 }
 
 @media (max-width: 760px) {
-  #dlgExcluida .janela-botoes > *,
-  #dlgReceita .janela-botoes > * {
+
+  #dlgExcluida .janela-botoes>*,
+  #dlgReceita .janela-botoes>* {
     flex: 1 1 100%;
     min-height: 44px;
   }
@@ -1780,8 +1860,166 @@ html[data-tema="escuro"] .aviso-caixa h2 {
     flex-wrap: wrap;
   }
 
-  #dlgAviso .aviso-botoes > * {
+  #dlgAviso .aviso-botoes>* {
     flex: 1 1 100%;
     min-height: 44px;
+  }
+}
+
+
+/* ===== UNIDADE DO MEDICAMENTO AVULSO NA RECEITA ===== */
+.seletor-unidade-item {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+}
+
+.btn-unidade-item {
+  width: 100%;
+  min-height: 50px;
+  padding: 9px 11px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--superficie);
+  color: var(--texto);
+  text-align: left;
+}
+
+.lista-unidades-item {
+  display: grid;
+  gap: 4px;
+  max-height: 140px;
+  overflow-y: auto;
+  margin-top: 4px;
+  padding: 5px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--superficie);
+}
+
+.opcao-unidade-item {
+  width: 100%;
+  min-height: 38px;
+  padding: 6px 10px;
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  background: var(--fundo);
+  color: var(--texto);
+  text-align: left;
+  white-space: normal;
+}
+
+.opcao-unidade-item:hover {
+  background: var(--verde-claro);
+}
+
+@media (max-width: 680px) {
+  .lista-unidades-item {
+    max-height: 120px;
+  }
+}
+
+.lista-unidades-item[hidden] {
+  display: none;
+}
+
+/* Corrige a largura do seletor de unidade nos medicamentos da receita */
+.item-med .dosagem-campo,
+.item-med .seletor-unidade-item {
+  min-width: 0;
+}
+
+.item-med .seletor-unidade-item {
+  width: 100%;
+}
+
+#rItens .btn-unidade-item,
+#rItens .opcao-unidade-item {
+  box-sizing: border-box;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.item-med .lista-unidades-item {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Organiza os campos do medicamento no computador */
+@media (min-width: 681px) {
+  .item-med {
+    position: relative;
+    grid-template-columns:
+      minmax(200px, 2.2fr) minmax(200px, 1.8fr) minmax(78px, 0.65fr) minmax(96px, auto);
+    gap: 10px;
+    align-items: end;
+  }
+
+  .item-med>label {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 5px;
+    margin: 0;
+  }
+
+  .item-med .dosagem-campo {
+    grid-template-columns: minmax(0, 1fr) 92px;
+    gap: 6px;
+  }
+
+  .item-med .seletor-unidade-item {
+    min-width: 0;
+    width: 100%;
+  }
+
+  #rItens .btn-unidade-item {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding-inline: 6px;
+    overflow: hidden;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #rItens button[data-remover-item] {
+    width: auto;
+    min-width: 0;
+    min-height: 48px;
+    padding: 10px 18px;
+    font-size: 1rem;
+    justify-self: center;
+    align-self: end;
+  }
+
+  .item-med:has(.lista-unidades-item:not([hidden])) {
+    padding-bottom: 170px;
+  }
+
+  #rItens .lista-unidades-item {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    z-index: 5;
+    box-sizing: border-box;
+    max-height: 140px;
+    margin: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  #rItens .opcao-unidade-item {
+    box-sizing: border-box;
+    min-width: 0;
+    text-align: center;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }
