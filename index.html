@@ -323,6 +323,22 @@
     </form>
   </dialog>
 
+  <dialog id="dlgNovaUnidadeReceita" class="janela">
+    <h2>Novo tipo de dosagem</h2>
+
+    <label for="novaUnidadeReceita">Tipo de dosagem *</label>
+    <input id="novaUnidadeReceita" type="text" maxlength="12" autocomplete="off" placeholder="Ex.: gotas, UI, g">
+
+    <div class="janela-botoes">
+      <button class="btn destaque" type="button" id="btnSalvarUnidadeReceita">
+        Salvar tipo
+      </button>
+      <button class="btn" type="button" id="btnCancelarUnidadeReceita">
+        Cancelar
+      </button>
+    </div>
+  </dialog>
+
   <!-- ===== JANELA: ESCOLHER MEDICAMENTOS PARA A RECEITA ===== -->
   <dialog id="dlgEscolherMeds" class="janela larga">
     <h2>Escolher medicamentos</h2>
@@ -391,12 +407,14 @@
         <label for="mDosagem">Dosagem</label>
         <div class="dosagem-campo">
           <input id="mDosagem" type="text" inputmode="decimal" placeholder="Ex.: 10">
-          <select id="mUnidadeDosagem" aria-label="Unidade da dosagem">
-            <option value="mg">mg</option>
-            <option value="ml">ml</option>
-            <option value="cp">cp</option>
-            <option value="mcg">mcg</option>
-          </select>
+          <div class="seletor-unidade-med">
+            <button id="btnUnidadeDosagem" type="button" aria-haspopup="listbox" aria-expanded="false">mg</button>
+
+            <div id="listaUnidadesMed" class="lista-unidades-med" role="listbox" aria-label="Tipos de dosagem" hidden>
+            </div>
+          </div>
+
+          <select id="mUnidadeDosagem" aria-label="Unidade da dosagem" hidden></select>
           <button class="btn" type="button" id="btnNovaUnidade">Adicionar tipo</button>
         </div>
 
@@ -433,6 +451,7 @@
     <div id="detalheExcluida"></div>
     <div class="janela-botoes">
       <button class="btn" type="button" id="btnEditarConsulta" hidden>Editar</button>
+      <button class="btn perigo" type="button" id="btnExcluirDefinitivamente" hidden>Excluir definitivamente</button>
       <button class="btn destaque" type="button" id="btnFecharExcluida">Fechar</button>
     </div>
   </dialog>

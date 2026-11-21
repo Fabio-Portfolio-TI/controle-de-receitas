@@ -20,6 +20,12 @@ function mostrarAviso(titulo, mensagem, aoFechar) {
     return;
   }
 
+  const botaoCancelar = document.getElementById('avisoCancelar');
+  if (botaoCancelar) {
+    botaoCancelar.hidden = true;
+    botaoCancelar.onclick = null;
+  }
+  botaoOk.textContent = 'OK';
   tituloElemento.textContent = titulo;
   textoElemento.textContent = mensagem;
 
@@ -36,54 +42,44 @@ function mostrarAviso(titulo, mensagem, aoFechar) {
 }
 
 function mostrarConfirmacao(titulo, mensagem, textoConfirmar = 'Confirmar') {
-  const dialogo = $('dlgAviso');
-  const tituloElemento = $('avisoTitulo');
-  const textoElemento = $('avisoTexto');
-  const botaoCancelar = $('avisoCancelar');
-  const botaoOk = $('avisoOk');
-
-  if (
-    !dialogo ||
-    !tituloElemento ||
-    !textoElemento ||
-    !botaoCancelar ||
-    !botaoOk ||
-    typeof dialogo.showModal !== 'function'
-  ) {
-    mostrarAviso('Atenção', 'Não foi possível abrir a confirmação.');
-    return Promise.resolve(false);
-  }
-
-  tituloElemento.textContent = titulo;
-  textoElemento.textContent = mensagem;
-  botaoCancelar.textContent = 'Cancelar';
-  botaoCancelar.hidden = false;
-  botaoOk.textContent = textoConfirmar;
-
   return new Promise(resolve => {
-    let resolvida = false;
+    const dialogo = document.getElementById('dlgAviso');
+    const tituloElemento = document.getElementById('avisoTitulo');
+    const textoElemento = document.getElementById('avisoTexto');
+    const botaoOk = document.getElementById('avisoOk');
+    const botaoCancelar = document.getElementById('avisoCancelar');
 
+    if (!dialogo || !tituloElemento || !textoElemento || !botaoOk ||
+      !botaoCancelar || typeof dialogo.showModal !== 'function') {
+      resolve(false);
+      return;
+    }
+
+    if (dialogo.open) dialogo.close();
+    tituloElemento.textContent = titulo;
+    textoElemento.textContent = mensagem;
+    botaoOk.textContent = textoConfirmar;
+    botaoCancelar.textContent = 'Cancelar';
+    botaoCancelar.hidden = false;
+
+    let resolvido = false;
     const finalizar = resposta => {
-      if (resolvida) return;
-      resolvida = true;
-
+      if (resolvido) return;
+      resolvido = true;
       dialogo.onclose = null;
-      botaoCancelar.onclick = null;
       botaoOk.onclick = null;
-
+      botaoCancelar.onclick = null;
       botaoCancelar.hidden = true;
       botaoOk.textContent = 'OK';
-
       if (dialogo.open) dialogo.close();
       resolve(resposta);
     };
 
     dialogo.onclose = () => finalizar(false);
-    botaoCancelar.onclick = () => finalizar(false);
     botaoOk.onclick = () => finalizar(true);
-
+    botaoCancelar.onclick = () => finalizar(false);
     dialogo.showModal();
-    botaoOk.focus();
+    botaoCancelar.focus();
   });
 }
 
@@ -91,6 +87,17 @@ let db = carregarDados();
 let itensTemporarios = [];
 let ordemReceitas = { campo: 'dataRetida', direcao: 'desc' };
 let usuarioAtual = null; // guarda o id do usuário logado (somente enquanto a página está aberta)
+
+function nomeEhAdministrador(nome) {
+  const normalizado = String(nome || '').trim().normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+  return normalizado === 'fabio';
+}
+
+function ehAdministrador() {
+  const usuario = db.usuarios.find(item => item.id === usuarioAtual);
+  return Boolean(usuario && usuario.perfil === 'administrador');
+}
 
 function criarBancoVazio() {
   return {
@@ -117,7 +124,10 @@ function ajustarBanco(dados) {
       id: usuario.id,
       nome: usuario.nome,
       senhaHash: usuario.senhaHash || '',
-      ultimoAcesso: usuario.ultimoAcesso || ''
+      ultimoAcesso: usuario.ultimoAcesso || '',
+      perfil: usuario.perfil === 'administrador' || nomeEhAdministrador(usuario.nome)
+        ? 'administrador'
+        : 'usuario'
     })),
     medicamentos: Array.isArray(dados.medicamentos) ? dados.medicamentos : [],
     receitas: Array.isArray(dados.receitas) ? dados.receitas : [],
@@ -282,48 +292,69 @@ function opcoesUnidade(selecionada, comOpcaoNova = false) {
   return html;
 }
 
+function atualizarSeletorUnidadeMed() {
+  const seletor = $('mUnidadeDosagem');
+  const botao = $('btnUnidadeDosagem');
+  const lista = $('listaUnidadesMed');
+  const opcaoAtual = seletor.options[seletor.selectedIndex];
+  botao.textContent = opcaoAtual ? opcaoAtual.textContent : 'mg';
+  lista.replaceChildren();
+
+  Array.from(seletor.options).forEach(opcao => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'opcao-unidade-med';
+    item.setAttribute('role', 'option');
+    item.setAttribute('aria-selected', String(opcao.value === seletor.value));
+    item.textContent = opcao.textContent;
+    item.addEventListener('click', () => {
+      seletor.value = opcao.value;
+      botao.textContent = opcao.textContent;
+      lista.hidden = true;
+      botao.setAttribute('aria-expanded', 'false');
+      botao.focus();
+    });
+    lista.appendChild(item);
+  });
+}
+
 function preencherUnidadesMed(selecionada = 'mg') {
   $('mUnidadeDosagem').innerHTML = opcoesUnidade(selecionada);
   $('mUnidadeDosagem').value = selecionada;
-}
-
-// Pergunta um tipo novo, valida e salva. Devolve o tipo ou '' se cancelado
-function adicionarUnidade() {
-  const resposta = prompt('Digite o novo tipo de dosagem (exemplos: gotas, UI, g):');
-  if (resposta === null) return '';
-
-  return salvarTipoDosagem(resposta);
+  atualizarSeletorUnidadeMed();
 }
 
 function salvarTipoDosagem(texto) {
   const nova = String(texto || '').trim().toLowerCase();
-
   if (!nova) {
     mostrarAviso('Atenção', 'Digite o novo tipo de dosagem.');
     return '';
   }
-
   if (!UNIDADE_VALIDA.test(nova)) {
-    mostrarAviso(
-      'Atenção',
-      'O tipo deve ter até 12 caracteres, usando apenas letras, %, / ou ponto.'
-    );
+    mostrarAviso('Atenção', 'O tipo deve ter até 12 caracteres, usando apenas letras, %, / ou ponto.');
     return '';
   }
-
   const existente = todasUnidades().find(u => u.toLowerCase() === nova);
   if (existente) return existente;
-
   db.unidades.push(nova);
-
-  try {
-    localStorage.setItem(CHAVE_DADOS, JSON.stringify(db));
-  } catch (erro) {
-    // O salvamento completo acontece junto com o restante dos dados.
-  }
-
+  try { localStorage.setItem(CHAVE_DADOS, JSON.stringify(db)); } catch (erro) {}
   return nova;
 }
+
+$('btnUnidadeDosagem').addEventListener('click', () => {
+  const lista = $('listaUnidadesMed');
+  lista.hidden = !lista.hidden;
+  $('btnUnidadeDosagem').setAttribute('aria-expanded', String(!lista.hidden));
+});
+
+$('mUnidadeDosagem').addEventListener('change', atualizarSeletorUnidadeMed);
+
+document.addEventListener('click', evento => {
+  if (!evento.target.closest('.seletor-unidade-med')) {
+    $('listaUnidadesMed').hidden = true;
+    $('btnUnidadeDosagem').setAttribute('aria-expanded', 'false');
+  }
+});
 
 // ===== CÁLCULO DE DIAS =====
 function criarData(texto) {
@@ -427,12 +458,11 @@ function preencherUsuariosDoLogin(selecionado = '') {
   const usuarios = [...db.usuarios].sort((a, b) =>
     a.nome.localeCompare(b.nome, 'pt-BR')
   );
+  const seletor = $('lUsuario');
+  const botao = $('btnUsuarioLogin');
+  const lista = $('listaUsuariosLogin');
 
-  const campoUsuario = $('lUsuario');
-  const botaoUsuario = $('btnUsuarioLogin');
-  const listaUsuarios = $('listaUsuariosLogin');
-
-  campoUsuario.innerHTML =
+  seletor.innerHTML =
     '<option value="">— Escolha seu nome —</option>' +
     usuarios.map(usuario => `
       <option value="${escapar(usuario.id)}"
@@ -441,52 +471,50 @@ function preencherUsuariosDoLogin(selecionado = '') {
       </option>
     `).join('');
 
-  listaUsuarios.innerHTML = usuarios.map(usuario => `
-    <button type="button" data-usuario-id="${escapar(usuario.id)}">
-      ${escapar(usuario.nome)}
-    </button>
-  `).join('');
+  lista.replaceChildren();
+  lista.hidden = true;
+  botao.setAttribute('aria-expanded', 'false');
 
-  const usuarioSelecionado = usuarios.find(
-    usuario => usuario.id === selecionado
-  );
-
-  botaoUsuario.textContent = usuarioSelecionado
+  const usuarioSelecionado = usuarios.find(usuario => usuario.id === selecionado);
+  botao.textContent = usuarioSelecionado
     ? usuarioSelecionado.nome
     : '— Escolha seu nome —';
 
-  botaoUsuario.disabled = usuarios.length === 0;
+  if (usuarios.length === 0) {
+    const mensagem = document.createElement('p');
+    mensagem.className = 'vazio';
+    mensagem.textContent = 'Nenhum usuário cadastrado. Use “Cadastrar novo usuário”.';
+    lista.appendChild(mensagem);
+    return;
+  }
+
+  usuarios.forEach(usuario => {
+    const opcao = document.createElement('button');
+    opcao.type = 'button';
+    opcao.textContent = usuario.nome;
+    opcao.addEventListener('click', () => {
+      seletor.value = usuario.id;
+      botao.textContent = usuario.nome;
+      lista.hidden = true;
+      botao.setAttribute('aria-expanded', 'false');
+      mostrarErroLogin('');
+      $('lSenha').focus();
+    });
+    lista.appendChild(opcao);
+  });
 }
 
 $('btnUsuarioLogin').addEventListener('click', () => {
   const lista = $('listaUsuariosLogin');
-  const vaiAbrir = lista.hidden;
-
-  lista.hidden = !vaiAbrir;
-  $('btnUsuarioLogin').setAttribute('aria-expanded', String(vaiAbrir));
-});
-
-$('listaUsuariosLogin').addEventListener('click', evento => {
-  const opcao = evento.target.closest('[data-usuario-id]');
-  if (!opcao) return;
-
-  const id = opcao.dataset.usuarioId;
-  const usuario = db.usuarios.find(item => item.id === id);
-  if (!usuario) return;
-
-  $('lUsuario').value = id;
-  $('btnUsuarioLogin').textContent = usuario.nome;
-  $('listaUsuariosLogin').hidden = true;
-  $('btnUsuarioLogin').setAttribute('aria-expanded', 'false');
+  lista.hidden = !lista.hidden;
+  $('btnUsuarioLogin').setAttribute('aria-expanded', String(!lista.hidden));
+  if (!lista.hidden) lista.querySelector('button')?.focus();
 });
 
 document.addEventListener('click', evento => {
-  const seletor = document.querySelector('.seletor-usuario-login');
-
-  if (seletor && !seletor.contains(evento.target)) {
-    $('listaUsuariosLogin').hidden = true;
-    $('btnUsuarioLogin').setAttribute('aria-expanded', 'false');
-  }
+  if (evento.target.closest('.seletor-usuario-login')) return;
+  $('listaUsuariosLogin').hidden = true;
+  $('btnUsuarioLogin').setAttribute('aria-expanded', 'false');
 });
 
 function bloquearTelaPrincipal(bloquear) {
@@ -517,7 +545,9 @@ function entrar(usuario) {
   usuarioAtual = usuario.id;
   usuario.ultimoAcesso = new Date().toISOString();
 
-  $('usuarioAtual').textContent = `Usuário: ${usuario.nome}`;
+  $('usuarioAtual').textContent = usuario.perfil === 'administrador'
+    ? `Usuário: ${usuario.nome} · Administrador`
+    : `Usuário: ${usuario.nome}`;
   bloquearTelaPrincipal(false);
 
   if ($('dlgNovoUsuario').open) $('dlgNovoUsuario').close();
@@ -590,7 +620,7 @@ $('formLogin').addEventListener('submit', async evento => {
       `${usuario.nome} ainda não tem senha.\n\n` +
       'A senha que você digitou será a sua senha daqui para frente. Continuar?';
 
-    if (!await mostrarConfirmacao('Definir senha', mensagem, 'Definir senha')) return;
+    if (!await mostrarConfirmacao('Definir senha', mensagem, 'Continuar')) return;
 
     usuario.senhaHash = await criarHashSenha(usuario.id, senha);
     entrar(usuario);
@@ -694,7 +724,8 @@ $('formNovoUsuario').addEventListener('submit', async evento => {
     id,
     nome,
     senhaHash: await criarHashSenha(id, senha),
-    ultimoAcesso: ''
+    ultimoAcesso: '',
+    perfil: nomeEhAdministrador(nome) ? 'administrador' : 'usuario'
   };
 
   db.usuarios.push(usuario);
@@ -796,6 +827,8 @@ function mostrarReceitas() {
 
   $('listaReceitas').innerHTML = receitas.map(receita => {
     const quantidade = (receita.itens || []).length;
+    const textoQuantidade =
+      quantidade === 1 ? '1 medicamento' : `${quantidade} medicamentos`;
 
     const dataRetirar = receita.dataRetida
       ? (() => {
@@ -813,12 +846,10 @@ function mostrarReceitas() {
 
     const dias = diasDaReceita(receita);
     const passouDoLimite = dias > LIMITE_DIAS;
-    const diasAtraso = dias - LIMITE_DIAS;
-
     const avisoDias = dias === LIMITE_DIAS - 1
-      ? `<span class="alerta-dias">Falta 1 dia para completar ${LIMITE_DIAS} dias</span>`
+      ? '<span class="alerta-dias">Falta 1 dia para completar 30 dias</span>'
       : passouDoLimite
-        ? `<span class="alerta-dias">Prazo excedido há ${diasAtraso} ${diasAtraso === 1 ? 'dia' : 'dias'}</span>`
+        ? `<span class="alerta-dias">${dias} dias</span>`
         : '';
 
     return `
@@ -833,13 +864,13 @@ function mostrarReceitas() {
           </button>
         </td>
        <td data-label="Retida em">${formatarData(receita.dataRetida)}</td>
-<td data-label="Disponível em">${formatarData(dataRetirar) || '—'}</td>
-<td data-label="Registrada por">${escapar(nomeDaPessoa(receita.retidaPor))}</td>
+<td data-label="Retirar a partir de">${formatarData(dataRetirar) || '—'}</td>
+<td data-label="Retida por">${escapar(nomeDaPessoa(receita.retidaPor))}</td>
         <td data-label="Status">
           <span class="tag aguardando">Aguardando entrega</span>
           ${avisoDias}
         </td>
-        <td data-label="Medicamentos">${quantidade}</td>
+        <td data-label="Medicamentos">${textoQuantidade}</td>
         <td data-label="Entregue em">—</td>
       </tr>
     `;
@@ -946,7 +977,7 @@ function mostrarExcluidos() {
         </button>
       </td>
       <td data-label="Retida em">${formatarData(receita.dataRetida)}</td>
-      <td data-label="Entregue em">${formatarData(receita.dataEntrega)}</td>
+      <td data-label="Retirada em">${formatarData(receita.dataEntrega)}</td>
       <td data-label="Excluída por">${escapar(nomeDaPessoa(receita.excluidaPor))}</td>
       <td data-label="Excluída em">${formatarDataHora(receita.excluidaEm)}</td>
     </tr>
@@ -1029,11 +1060,11 @@ function mostrarEntregues() {
           </button>
         </td>
         <td data-label="Retida em">${formatarData(receita.dataRetida)}</td>
-        <td data-label="Entregue em">
+        <td data-label="Retirada em">
           ${formatarData(receita.dataEntrega)}
           ${avisoAntecipado}
         </td>
-        <td data-label="Registrada por"${escapar(nomeDaPessoa(receita.retidaPor))}</td>
+        <td data-label="Retida por">${escapar(nomeDaPessoa(receita.retidaPor))}</td>
         <td data-label="Entregue por">${escapar(nomeDaPessoa(receita.entreguePor))}</td>
       </tr>
     `;
@@ -1045,6 +1076,8 @@ function mostrarEntregues() {
 // ===== CONSULTAR RECEITA (SOMENTE LEITURA) =====
 function abrirConsulta(receita, titulo) {
   const itens = Array.isArray(receita.itens) ? receita.itens : [];
+  const estaExcluida = db.excluidos.some(item => item.id === receita.id);
+  const administrador = ehAdministrador();
 
   const linhasMedicamentos = itens.length
     ? itens.map(item => `
@@ -1114,8 +1147,14 @@ function abrirConsulta(receita, titulo) {
   if (tituloJanela) tituloJanela.textContent = titulo;
 
   const botaoEditar = $('btnEditarConsulta');
-  botaoEditar.hidden = Boolean(receita.dataEntrega || receita.excluidaPor);
+  botaoEditar.hidden = !administrador && Boolean(receita.dataEntrega || receita.excluidaPor);
+  botaoEditar.textContent = administrador ? 'Editar registro' : 'Editar';
   botaoEditar.dataset.receitaId = receita.id;
+  botaoEditar.dataset.origem = estaExcluida ? 'excluidos' : 'receitas';
+
+  const botaoExcluirDefinitivamente = $('btnExcluirDefinitivamente');
+  botaoExcluirDefinitivamente.hidden = !administrador || !estaExcluida;
+  botaoExcluirDefinitivamente.dataset.receitaId = receita.id;
 
   $('dlgExcluida').showModal();
 }
@@ -1130,7 +1169,7 @@ $('listaExcluidos').addEventListener('click', evento => {
 
   if (!receita) return;
 
-  abrirConsulta(receita, 'Receita excluída');
+  abrirConsulta(receita, 'Receita excluída (somente consulta)');
 });
 
 $('listaEntregues').addEventListener('click', evento => {
@@ -1143,13 +1182,31 @@ $('listaEntregues').addEventListener('click', evento => {
 
   if (!receita || !receita.dataEntrega) return;
 
-  abrirConsulta(receita, 'Receita entregue');
+  abrirConsulta(receita, 'Receita entregue (somente consulta)');
 });
 
 $('btnEditarConsulta').addEventListener('click', () => {
-  const id = $('btnEditarConsulta').dataset.receitaId;
+  const botao = $('btnEditarConsulta');
+  const id = botao.dataset.receitaId;
+  const origem = botao.dataset.origem || 'receitas';
   $('dlgExcluida').close();
-  abrirReceita(id);
+  abrirReceita(id, origem);
+});
+
+$('btnExcluirDefinitivamente').addEventListener('click', async () => {
+  if (!ehAdministrador()) return;
+  const id = $('btnExcluirDefinitivamente').dataset.receitaId;
+  const receita = db.excluidos.find(item => item.id === id);
+  if (!receita) return;
+  const confirmar = await mostrarConfirmacao(
+    'Excluir registro definitivamente?',
+    `O registro de ${receita.paciente || 'paciente'} será removido permanentemente deste navegador. Esta ação não pode ser desfeita.`,
+    'Excluir definitivamente'
+  );
+  if (!confirmar) return;
+  db.excluidos = db.excluidos.filter(item => item.id !== id);
+  $('dlgExcluida').close();
+  salvarDados();
 });
 
 $('btnFecharExcluida').addEventListener('click', () => {
@@ -1196,15 +1253,13 @@ document.querySelectorAll('.aba').forEach(botao => {
   });
 });
 
-// ===== AVISO SOBRE A BUSCA PELO NOME DO PACIENTE =====
 let avisoBuscaMostrado = false;
+
+// ===== POUP-UP DO CAMPO SOMENTE NOME DO PACIENTE =====
 
 $('busca').addEventListener('focus', () => {
   if (!avisoBuscaMostrado) {
-    mostrarAviso(
-      'Sobre a busca',
-      'A busca localiza pacientes somente pelo nome e mostra em qual aba estão.'
-    );
+    mostrarAviso('Busca por paciente', 'A busca localiza pacientes somente pelo nome e mostra em qual aba estão.');
     avisoBuscaMostrado = true;
   }
 });
@@ -1242,7 +1297,7 @@ document.addEventListener('click', evento => {
           botaoAba.click();
         }
 
-        abrirConsulta(receita, 'Receita');
+        abrirConsulta(receita, 'Receita (somente consulta)');
       }
 
       break;
@@ -1279,18 +1334,26 @@ function textoInfoRegistro(receita) {
   return partes.join(' | ');
 }
 
-function abrirReceita(id = '') {
-  const receita = db.receitas.find(item => item.id === id);
+function abrirReceita(id = '', origem = 'receitas') {
+  const listaFonte = origem === 'excluidos' ? db.excluidos : db.receitas;
+  const receita = listaFonte.find(item => item.id === id);
 
-  // Receita entregue: abre somente para consulta
-  if (receita && receita.dataEntrega) {
-    abrirConsulta(receita, 'Receita entregue');
+  if (origem === 'excluidos' && !ehAdministrador()) {
+    mostrarAviso('Atenção', 'Somente o administrador pode alterar registros excluídos.');
+    return;
+  }
+
+  // Receitas entregues são somente consulta para usuários comuns.
+  if (receita && receita.dataEntrega && !ehAdministrador()) {
+    abrirConsulta(receita, 'Receita entregue (somente consulta)');
     return;
   }
 
   $('formReceita').dataset.id = receita ? receita.id : '';
-  $('tituloReceita').textContent =
-    receita ? 'Conferir ou alterar receita' : 'Nova receita';
+  $('formReceita').dataset.origem = receita ? origem : 'receitas';
+  $('tituloReceita').textContent = receita
+    ? (origem === 'excluidos' ? 'Editar registro excluído' : receita.dataEntrega ? 'Editar receita entregue' : 'Conferir ou alterar receita')
+    : 'Nova receita';
 
   $('infoRegistro').hidden = !receita;
   $('infoRegistro').textContent = receita ? textoInfoRegistro(receita) : '';
@@ -1348,6 +1411,9 @@ function abrirReceita(id = '') {
   });
 
   $('btnExcluirReceita').hidden = !receita;
+  $('btnExcluirReceita').textContent = origem === 'excluidos'
+    ? 'Excluir definitivamente'
+    : 'Excluir receita';
   mostrarItensDaReceita();
 
   $('dlgReceita').showModal();
@@ -1400,14 +1466,6 @@ $('rItens').addEventListener('input', evento => {
 
   if (indice === undefined || !campo) return;
 
-  // Escolheu "+ Novo tipo…" na lista de unidades
-  if (campo === 'unidadeDosagem' && evento.target.value === '__novo__') {
-    const nova = adicionarUnidade();
-    if (nova) itensTemporarios[indice].unidadeDosagem = nova;
-    mostrarItensDaReceita();
-    return;
-  }
-
   // Dosagem: somente números, vírgula ou ponto
   if (campo === 'dosagem') {
     evento.target.value = evento.target.value.replace(/[^0-9.,]/g, '');
@@ -1419,6 +1477,31 @@ $('rItens').addEventListener('input', evento => {
       : evento.target.value;
 
   $('rContagem').textContent = itensTemporarios.length;
+});
+
+$('rItens').addEventListener('change', evento => {
+  if (evento.target.dataset.campo !== 'unidadeDosagem' || evento.target.value !== '__novo__') return;
+  $('dlgNovaUnidadeReceita').dataset.indice = evento.target.dataset.indice;
+  $('novaUnidadeReceita').value = '';
+  $('dlgNovaUnidadeReceita').showModal();
+  $('novaUnidadeReceita').focus();
+});
+
+$('btnSalvarUnidadeReceita').addEventListener('click', () => {
+  const janela = $('dlgNovaUnidadeReceita');
+  const nova = salvarTipoDosagem($('novaUnidadeReceita').value);
+  if (!nova) { $('novaUnidadeReceita').focus(); return; }
+  const indice = Number(janela.dataset.indice);
+  if (Number.isInteger(indice) && itensTemporarios[indice]) {
+    itensTemporarios[indice].unidadeDosagem = nova;
+  }
+  janela.close();
+  mostrarItensDaReceita();
+});
+
+$('btnCancelarUnidadeReceita').addEventListener('click', () => {
+  $('dlgNovaUnidadeReceita').close();
+  mostrarItensDaReceita();
 });
 
 $('rItens').addEventListener('click', evento => {
@@ -1932,7 +2015,7 @@ function validarReceita() {
   if (itensValidos.length === 0) {
     return avisarCampo(
       'Inclua pelo menos um medicamento na receita, com o nome preenchido.',
-      $('rSelMed')
+      $('btnAddMed')
     );
   }
 
@@ -1992,7 +2075,9 @@ $('formReceita').addEventListener('submit', evento => {
   const id = $('formReceita').dataset.id;
 
   if (id) {
-    const receita = db.receitas.find(item => item.id === id);
+    const origem = $('formReceita').dataset.origem || 'receitas';
+    const listaFonte = origem === 'excluidos' ? db.excluidos : db.receitas;
+    const receita = listaFonte.find(item => item.id === id);
 
     if (receita) {
       const tinhaEntrega = Boolean(receita.dataEntrega);
@@ -2028,15 +2113,31 @@ $('formReceita').addEventListener('submit', evento => {
 // Excluir receita: vai para a aba Excluídos, com o nome de quem excluiu
 $('btnExcluirReceita').addEventListener('click', async () => {
   const id = $('formReceita').dataset.id;
+  const origem = $('formReceita').dataset.origem || 'receitas';
   if (!id || !usuarioAtual) return;
+
+  if (origem === 'excluidos') {
+    if (!ehAdministrador()) return;
+    const receitaExcluida = db.excluidos.find(item => item.id === id);
+    if (!receitaExcluida) return;
+    const confirmou = await mostrarConfirmacao(
+      'Excluir registro definitivamente?',
+      `O registro de ${receitaExcluida.paciente || 'paciente'} será removido permanentemente deste navegador.`,
+      'Excluir definitivamente'
+    );
+    if (!confirmou) return;
+    db.excluidos = db.excluidos.filter(item => item.id !== id);
+    $('dlgReceita').close();
+    salvarDados();
+    return;
+  }
 
   const receita = db.receitas.find(item => item.id === id);
   if (!receita) return;
-
   const confirmou = await mostrarConfirmacao(
-    'Excluir receita',
-    'Excluir esta receita? Ela será movida para a aba "Excluídos".',
-    'Excluir'
+    'Excluir receita?',
+    'A receita será movida para a aba “Excluídos”.',
+    'Mover para Excluídos'
   );
   if (!confirmou) return;
 
@@ -2065,9 +2166,6 @@ function abrirMedicamento(id = '') {
   preencherUnidadesMed(dados ? dados.unidadeDosagem || 'mg' : 'mg');
   $('mTotal').value = dados ? totalDoItem(dados) : 0;
 
-  $('telaDadosMed').hidden = false;
-  $('telaNovaUnidade').hidden = true;
-
   $('dlgMed').showModal();
 }
 
@@ -2077,7 +2175,7 @@ $('btnCancelarMed').addEventListener('click', () => {
   $('dlgMed').close();
 });
 
-// Botão "Adicionar tipo" da dosagem
+// Botão “Adicionar tipo” usa a tela interna do diálogo, inclusive no celular.
 $('btnNovaUnidade').addEventListener('click', () => {
   $('telaDadosMed').hidden = true;
   $('telaNovaUnidade').hidden = false;
@@ -2087,9 +2185,7 @@ $('btnNovaUnidade').addEventListener('click', () => {
 
 $('btnSalvarNovaUnidade').addEventListener('click', () => {
   const nova = salvarTipoDosagem($('mNovaUnidade').value);
-
   if (!nova) return;
-
   preencherUnidadesMed(nova);
   $('telaNovaUnidade').hidden = true;
   $('telaDadosMed').hidden = false;
@@ -2098,7 +2194,7 @@ $('btnSalvarNovaUnidade').addEventListener('click', () => {
 $('btnVoltarNovaUnidade').addEventListener('click', () => {
   $('telaNovaUnidade').hidden = true;
   $('telaDadosMed').hidden = false;
-  $('mUnidadeDosagem').focus();
+  $('btnUnidadeDosagem').focus();
 });
 
 $('novoMedReceitaDosagem').addEventListener('input', () => {
@@ -2150,13 +2246,14 @@ $('formMed').addEventListener('submit', evento => {
 });
 
 async function excluirMedicamento(id) {
+  const medicamento = db.medicamentos.find(item => item.id === id);
+  if (!medicamento) return;
   const confirmou = await mostrarConfirmacao(
-    'Excluir medicamento',
-    'Excluir este medicamento do catálogo?',
+    'Excluir medicamento?',
+    `“${medicamento.nome}” será removido do catálogo.`,
     'Excluir'
   );
   if (!confirmou) return;
-
   db.medicamentos = db.medicamentos.filter(item => item.id !== id);
   salvarDados();
 }
@@ -2236,33 +2333,31 @@ $('btnExportar').addEventListener('click', () => {
   setTimeout(() => URL.revokeObjectURL(endereco), 1000);
 });
 
-$('inputImportar').addEventListener('change', async evento => {
+$('inputImportar').addEventListener('change', evento => {
   const arquivo = evento.target.files[0];
   if (!arquivo) return;
 
-  try {
-    const conteudo = await arquivo.text();
-    const dados = ajustarBanco(JSON.parse(conteudo));
+  arquivo.text().then(async conteudo => {
+    try {
+      const dados = ajustarBanco(JSON.parse(conteudo));
 
-    const confirmou = await mostrarConfirmacao(
-      'Importar backup',
-      'Importar este backup substituirá os dados atuais. Continuar?',
-      'Importar'
-    );
+      if (!await mostrarConfirmacao('Importar backup?', 'Este backup substituirá os dados atuais. Continuar?', 'Importar')) {
+        evento.target.value = '';
+        return;
+      }
 
-    if (!confirmou) return;
+      db = dados;
+      salvarDados();
+      mostrarAviso('Backup importado', 'Backup importado com sucesso.');
+    } catch (erro) {
+      mostrarAviso(
+        'Erro ao importar',
+        'Não foi possível importar. Escolha um backup JSON válido do aplicativo.'
+      );
+    }
 
-    db = dados;
-    salvarDados();
-    mostrarAviso('Backup importado', 'Backup importado com sucesso.');
-  } catch (erro) {
-    mostrarAviso(
-      'Erro ao importar',
-      'Não foi possível importar. Escolha um backup JSON válido do aplicativo.'
-    );
-  } finally {
     evento.target.value = '';
-  }
+  });
 });
 
 // ===== INICIAR O APLICATIVO =====
@@ -2293,22 +2388,3 @@ $('rDataRetida').addEventListener('input', () => {
 
   $('rDataRetirar').value = `${anoRetirada}-${mesRetirada}-${diaRetirada}`;
 });
-
-const botaoVoltarTopo = document.getElementById('btnVoltarTopo');
-
-function atualizarBotaoVoltarTopo() {
-  const alturaDocumento = document.documentElement.scrollHeight;
-  const chegouAoFinal =
-    window.innerHeight + window.scrollY >= alturaDocumento - 120;
-
-  botaoVoltarTopo.hidden = !chegouAoFinal;
-}
-
-window.addEventListener('scroll', atualizarBotaoVoltarTopo, { passive: true });
-window.addEventListener('resize', atualizarBotaoVoltarTopo);
-
-botaoVoltarTopo.addEventListener('click', () => {
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-});
-
-atualizarBotaoVoltarTopo();
