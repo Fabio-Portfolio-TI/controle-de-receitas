@@ -184,20 +184,23 @@
     </form>
   </dialog>
 
-  <!-- ===== JANELA: CONFIRMAR SAÍDA OU TROCA DE USUÁRIO ===== -->
-  <dialog id="dlgConfirmarSaida" class="janela">
-    <h2>Sair ou trocar de usuário?</h2>
-    <p>Você pode voltar à tela de login ou continuar usando o usuário atual.</p>
+ <!-- ===== JANELA: CONFIRMAR SAÍDA OU TROCA DE USUÁRIO ===== -->
+<dialog id="dlgConfirmarSaida" class="janela">
+  <h2>Sair ou trocar de usuário?</h2>
+  <p id="avisoBackupSaida"></p>
 
-    <div class="janela-botoes">
-      <button class="btn" type="button" id="btnCancelarSaida">
-        Continuar conectado
-      </button>
-      <button class="btn destaque" type="button" id="btnConfirmarSaida">
-        Voltar ao login
-      </button>
-    </div>
-  </dialog>
+  <div class="janela-botoes">
+    <button class="btn" type="button" id="btnCancelarSaida">
+      Continuar conectado
+    </button>
+    <button class="btn" type="button" id="btnSalvarBackupSaida">
+      Salvar backup agora
+    </button>
+    <button class="btn destaque" type="button" id="btnConfirmarSaida">
+      Voltar ao login
+    </button>
+  </div>
+</dialog>
 
   <!-- ===== JANELA: CADASTRAR NOVO USUÁRIO ===== -->
   <dialog id="dlgNovoUsuario" class="janela">

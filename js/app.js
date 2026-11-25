@@ -2,6 +2,7 @@
 const CHAVE_DADOS = 'controle_receitas_v2';
 const CHAVE_TEMA = 'tema';
 const CHAVE_ULTIMO_BACKUP = 'ultimo_backup';
+const CHAVE_CONTEUDO_ULTIMO_BACKUP = 'conteudo_ultimo_backup';
 const LIMITE_DIAS = 30;
 
 const $ = id => document.getElementById(id);
@@ -705,13 +706,44 @@ $('lSenha').addEventListener('input', () => {
   $('lSenha').value = $('lSenha').value.replace(/\D/g, '').slice(0, 4);
 });
 
-// O botão de sair abre a confirmação; as opções permitem voltar ao login ou continuar conectado.
+function atualizarAvisoBackupSaida() {
+  const aviso = $('avisoBackupSaida');
+  const botaoConfirmar = $('btnConfirmarSaida');
+
+  if (!existemDadosParaBackup()) {
+    aviso.textContent = 'Não há dados cadastrados que precisem de backup.';
+    botaoConfirmar.textContent = 'Voltar ao login';
+    return;
+  }
+
+  const backupRegistrado = localStorage.getItem(CHAVE_CONTEUDO_ULTIMO_BACKUP);
+  const backupAtual = backupRegistrado === conteudoParaCompararBackup();
+
+  if (backupAtual) {
+    aviso.textContent = 'O backup está atualizado.';
+    botaoConfirmar.textContent = 'Voltar ao login';
+  } else {
+    aviso.textContent = 'Há dados novos ou alterações desde o último backup.';
+    botaoConfirmar.textContent = 'Voltar ao login sem novo backup';
+  }
+}
+
+// O botão de sair abre a confirmação e informa a situação do backup.
 $('btnSair').addEventListener('click', () => {
+  atualizarAvisoBackupSaida();
   $('dlgConfirmarSaida').showModal();
 });
 
 $('btnCancelarSaida').addEventListener('click', () => {
   $('dlgConfirmarSaida').close();
+});
+
+$('btnSalvarBackupSaida').addEventListener('click', () => {
+  $('btnExportar').click();
+  atualizarAvisoBackupSaida();
+
+  $('avisoBackupSaida').textContent =
+    'O download do backup foi iniciado. Confira se o arquivo foi baixado antes de voltar ao login.';
 });
 
 $('btnConfirmarSaida').addEventListener('click', () => {
@@ -813,6 +845,38 @@ function textoDosDados() {
     2
   );
 }
+
+function conteudoParaCompararBackup() {
+  return JSON.stringify({
+    // O último acesso muda a cada login, mas não altera os dados cadastrados.
+    usuarios: db.usuarios.map(({ ultimoAcesso, ...usuario }) => usuario),
+    medicamentos: db.medicamentos,
+    receitas: db.receitas,
+    excluidos: db.excluidos,
+    unidades: db.unidades
+  });
+}
+
+function existemDadosParaBackup() {
+  return Boolean(
+    db.usuarios.length ||
+    db.medicamentos.length ||
+    db.receitas.length ||
+    db.excluidos.length ||
+    db.unidades.length
+  );
+}
+
+window.addEventListener('beforeunload', evento => {
+  if (!existemDadosParaBackup()) return;
+
+  const backupRegistrado = localStorage.getItem(CHAVE_CONTEUDO_ULTIMO_BACKUP);
+  if (backupRegistrado === conteudoParaCompararBackup()) return;
+
+  evento.preventDefault();
+  evento.returnValue = '';
+});
+
 
 function salvarDados() {
   try {
@@ -2581,6 +2645,8 @@ $('btnExportar').addEventListener('click', () => {
   link.click();
 
   localStorage.setItem(CHAVE_ULTIMO_BACKUP, dataDeHoje());
+  localStorage.setItem(CHAVE_CONTEUDO_ULTIMO_BACKUP, conteudoParaCompararBackup());
+
 
   setTimeout(() => URL.revokeObjectURL(endereco), 1000);
 });
